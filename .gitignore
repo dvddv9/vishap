@@ -1,0 +1,87 @@
+.venv/
+__pycache__/
+*.pyc
+.env
+*.log
+data/
+*.db
+*.sqlite
+.pytest_cache/
+.vscode/
+.idea/
+*.egg-info/
+build/
+dist/
+!examples/multi/incident.log
+
+# Temporary scripts (do not commit) — only at repo root
+/fix_*.py
+/build_*.py
+/make_*.py
+/translate_*.py
+/extract_*.py
+/add_*.py
+/show_*.py
+/update_*.py
+/precision_*.py
+/check_*.py
+/rc*.py
+
+# Test scripts (do not commit) — only at repo root
+/test_*.py
+
+# backups / temp
+*.bak
+/patch_*.py
+/upload_*.py
+
+# Vishap baseline files
+.vishap-baseline.json
+
+# SBOM output
+sbom.json
+
+# SARIF output
+*.sarif
+
+# Working dogfood inputs (не коммитим -- копии в docs/case-studies)
+/examples/dogfood/
+
+# Throwaway patch scripts (one-off)
+_patch_*.py
+_release_*.py
+_make_*.py
+_dogfood_*.py
+_check_*.py
+_recon_*.py
+_start_*.py
+_fix_*.py
+_reg_*.py
+_add_*.py
+_finalize_*.py
+_*_tests.py
+_msg.txt
+_commit_msg.txt
+.streamlit/
+
+# v6.0.2-fix: temp artifacts and agent manifests
+_*.txt
+.tmp_data/
+pytest-of-*/
+AGENTS.md
+
+# v6.1-fix: pipeline temp files
+/tmp*
+vishap-tests-*/
+
+# temp: docker cp data for case-study
+data_curl/
+
+# === Docusaurus (docs-site) ===
+docs-site/node_modules/
+docs-site/build/
+docs-site/.docusaurus/
+docs-site/.cache-loader/
+docs-site/.env.local
+docs-site/npm-debug.log*
+poc-backup/

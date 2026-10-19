@@ -1,0 +1,49 @@
+/* Custom styles on top of the Tailwind CDN build. */
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+/* Terminal block (hero visual, no images) */
+.terminal {
+  background: #020617;
+  border: 1px solid #1e293b;
+  border-radius: 0.75rem;
+  overflow: hidden;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.terminal-bar {
+  display: flex;
+  gap: 0.4rem;
+  padding: 0.6rem 0.8rem;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+
+.terminal-bar span {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 9999px;
+  background: #334155;
+}
+
+.terminal pre {
+  margin: 0;
+  padding: 1rem 1.2rem;
+  overflow-x: auto;
+  color: #e2e8f0;
+}
+
+/* Visible keyboard focus for accessibility (WCAG AA) */
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid #34d399;
+  outline-offset: 2px;
+}
