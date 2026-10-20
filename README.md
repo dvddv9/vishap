@@ -1,6 +1,5 @@
 ﻿[![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
-[![PyPI version](https://badge.fury.io/py/vishap-analyzer.svg)](https://badge.fury.io/py/vishap-analyzer)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > рџ”¬ 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
@@ -12,7 +11,6 @@
 - **Documentation:** [https://dvddv9.github.io/vishap/](https://dvddv9.github.io/vishap/)
 - **Landing Page:** [https://dvddv9.github.io/vishap/landing/](https://dvddv9.github.io/vishap/landing/)
 - **GitHub App:** Auto-analyze PR diffs and comment on findings.
-- **PyPI:** `pip install vishap-analyzer`
 - **Releases:** [https://github.com/dvddv9/vishap/releases/latest](https://github.com/dvddv9/vishap/releases/latest)
 
 ## рџ–Ґ Desktop App (v7.0.0)
@@ -74,7 +72,6 @@ Double-click `start_vishap_dev.bat`. It starts the backend from `.venv` (`python
 
 ### CLI (all platforms)
 ```bash
-pip install vishap-analyzer
 vishap analyze file.py
 ```
 
