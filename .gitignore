@@ -89,3 +89,4 @@ node_modules/
 .vishap_tmp/
 stage4/
 report_*.md
+.pypi-test/

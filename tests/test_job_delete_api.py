@@ -1,5 +1,5 @@
-# -*- coding: utf-8 -*-
-"""`DELETE /status/{job_id}` — the endpoint behind the UI's delete buttons.
+﻿# -*- coding: utf-8 -*-
+"""`DELETE /status/{job_id}` вЂ” the endpoint behind the UI's delete buttons.
 
 The dashboard and the report page both call it, so it must be boring: 200 when
 the job existed, 404 when it did not, and never a 500 for a missing job.
@@ -11,7 +11,7 @@ import src.main as main
 from src.config import CONVEYOR_API_KEY
 
 # The API key is enforced whenever `.env` sets one (it does in this project), so
-# every request carries it — same pattern as tests/test_async_api.py.
+# every request carries it вЂ” same pattern as tests/test_async_api.py.
 HEADERS = {"X-API-Key": CONVEYOR_API_KEY} if CONVEYOR_API_KEY else {}
 
 
@@ -46,11 +46,12 @@ def test_delete_answers_404_for_an_unknown_job(client, monkeypatch):
     assert response.json()["detail"] == "job not found"
 
 
-def test_delete_requires_the_api_key(client):
+def test_delete_requires_the_api_key(client, monkeypatch):
     """Without the header the endpoint must be rejected before the store is hit."""
+    import src.api.auth as auth_mod
+    monkeypatch.setattr(auth_mod, "API_KEY", "test-key-123")
     response = client.delete("/status/job-1")
     assert response.status_code == 401
-
 
 def test_delete_is_scoped_to_the_tenant(client, monkeypatch):
     """The handler must run inside the current tenant scope, or Postgres RLS
@@ -66,3 +67,4 @@ def test_delete_is_scoped_to_the_tenant(client, monkeypatch):
     monkeypatch.setattr(main, "delete_job_async", fake_delete)
     assert client.delete("/status/job-1", headers=HEADERS).status_code == 200
     assert "tenant" in used
+

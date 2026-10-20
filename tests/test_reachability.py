@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Tests for src/tools/reachability.py (P2-7).
 
 Test-first: this file is written BEFORE the module.

@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Harness client - direct DSH (DeepSeek Harness) integration."""
 from __future__ import annotations
 

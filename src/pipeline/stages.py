@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """
 РЎС‚Р°РґРёРё pipeline Vishap.
 v2: СѓР»СѓС‡С€РµРЅРЅС‹Р№ JSON-РїР°СЂСЃРёРЅРі + max_tokens РёР· config.

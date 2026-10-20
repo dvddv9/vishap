@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Tests for SARIF output (P1-4)."""
 from src.tools.sarif import to_sarif, write_sarif, _severity_to_sarif_level
 

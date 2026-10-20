@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Doc-guard tests for SECURITY.md (P2-10).
 
 Purpose: prevent regressions in the formal threat model

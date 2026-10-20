@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Tests for src/tools/compliance.py (P2-8).
 
 Test-first: written BEFORE the module. Expect ImportError on first run.

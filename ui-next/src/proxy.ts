@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
 // Dev/local pass-through: no Clerk middleware.
 export default function proxy() {

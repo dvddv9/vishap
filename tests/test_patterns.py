@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Tests for P2-7 pattern extensions in patterns.py.
 
 Covers: go/js entry points, TAINT_SOURCES, TAINT_SINKS.

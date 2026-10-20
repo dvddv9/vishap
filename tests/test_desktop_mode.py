@@ -3,13 +3,13 @@
 
 The desktop build is the same Next.js app with `NEXT_PUBLIC_DESKTOP=1`, a static
 export, and Clerk replaced by local stubs. These tests pin the switches that make
-that work — every one of them was needed to get `next build` to exit 0:
+that work РІР‚вЂќ every one of them was needed to get `next build` to exit 0:
 
 * `output: 'export'` and `images.unoptimized` only in desktop mode;
 * `cacheComponents` off in desktop mode (PPR cannot be enabled in export mode);
 * `@clerk/nextjs` aliased to a stub (Clerk's barrel registers server actions,
   which a static export refuses);
-* no dynamic `/report/[id]` route — the id travels in `?id=`;
+* no dynamic `/report/[id]` route РІР‚вЂќ the id travels in `?id=`;
 * Clerk hooks only reachable behind the `IS_DESKTOP` gate.
 
 None of this executes Next or a browser; it asserts on source text, so it runs in
@@ -44,7 +44,7 @@ def test_next_config_switches_output_on_the_desktop_flag():
 
 
 def test_cache_components_is_disabled_for_the_export():
-    """PPR cannot be enabled in export mode — the build fails with an invariant."""
+    """PPR cannot be enabled in export mode РІР‚вЂќ the build fails with an invariant."""
     text = _read(UI / "next.config.ts")
     assert re.search(r"cacheComponents:\s*!isDesktop", text)
     assert re.search(r"partialPrefetching:\s*!isDesktop", text)
@@ -80,18 +80,16 @@ def test_desktop_flag_module_reads_the_public_env():
 # Clerk gating
 # ---------------------------------------------------------------------------
 
-def test_layout_skips_clerk_provider_in_desktop_mode():
+def test_layout_has_no_clerk_provider():
     text = _read(SRC / "app" / "layout.tsx")
-    assert "if (IS_DESKTOP) return page;" in text
-    assert "<ClerkProvider>" in text, "the web build must keep ClerkProvider"
+    assert "<ClerkProvider" not in text, "Clerk is removed from layout (dev/desktop use stubs)"
+    assert "return page;" in text
 
-
-def test_proxy_is_a_pass_through_in_desktop_mode():
+def test_proxy_is_a_pass_through():
     text = _read(SRC / "proxy.ts")
-    assert "desktopMiddleware" in text
-    assert "export default IS_DESKTOP ? desktopMiddleware : webMiddleware;" in text
     assert "NextResponse.next()" in text
-
+    assert "clerkMiddleware" not in text, "Clerk middleware is removed"
+    assert "IS_DESKTOP" not in text, "proxy is now a plain pass-through"
 
 def test_clerk_hooks_only_run_behind_the_gate():
     """`useUser` must never execute when no provider is mounted."""
@@ -160,3 +158,4 @@ def test_api_fetch_falls_back_to_tauri_ipc_on_cors_block():
     assert 'invoke!("api_request"' in text
     assert "window.__TAURI__" in text
     assert "withGlobalTauri" in _read(ROOT / "src-tauri" / "tauri.conf.json")
+

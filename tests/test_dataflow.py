@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """P2-7b: AST-based data-flow analysis tests (TDD).
 
 Tests define the API of src/tools/dataflow.py before implementation.

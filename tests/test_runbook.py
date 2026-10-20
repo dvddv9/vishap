@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Tests for src/tools/runbook.py (P2-9).
 
 Test-first: written BEFORE the module. Expect ImportError on first run.

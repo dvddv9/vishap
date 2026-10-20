@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Find, probe and (optionally) start a local DSH harness.
 
 Vishap's only LLM path is the DeepSeek Harness, so a stale harness is the single

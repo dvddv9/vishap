@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """Unified LLM entry point — DSH harness only.
 
 All stages call ``chat()``. It goes to the local DeepSeek Harness (DSH)
