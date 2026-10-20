@@ -1,12 +1,15 @@
-"use client";
+﻿"use client";
 
 import { Suspense } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { SignInButton, UserButton, useUser } from "@clerk/nextjs";
 import { ExternalLink, LayoutDashboard, Search } from "lucide-react";
-import HarnessBadge from "@/components/HarnessBadge";
 import { IS_DESKTOP } from "@/lib/desktop";
+
+// Local stubs instead of Clerk (dev/desktop: no Clerk keys needed).
+const UserButton = () => null;
+const useUser = () => ({ isLoaded: true, isSignedIn: false as const, user: null });
+
 
 /** What the account slot should show. `local` = desktop build, no auth at all. */
 type AuthState = "loading" | "signed-in" | "signed-out" | "local";
@@ -28,7 +31,7 @@ function NavbarInner({ auth }: { auth: AuthState }) {
           href="/"
           className="mr-3 flex items-center gap-2 text-base font-semibold tracking-tight text-slate-100 transition-colors hover:text-white"
         >
-          <span aria-hidden="true">🐉</span>
+          <span aria-hidden="true">рџђ‰</span>
           <span>Vishap</span>
         </Link>
 
@@ -62,21 +65,11 @@ function NavbarInner({ auth }: { auth: AuthState }) {
         </a>
 
         <div className="ml-auto flex items-center gap-2">
-          <HarnessBadge />
           {auth === "loading" ? (
             <span className="h-8 w-8" aria-hidden="true" />
           ) : auth === "signed-in" ? (
             <UserButton />
-          ) : auth === "signed-out" ? (
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="rounded-md bg-sky-500 px-3 py-1.5 text-sm font-medium text-slate-950 transition-colors hover:bg-sky-400"
-              >
-                Sign in
-              </button>
-            </SignInButton>
-          ) : (
+          ) : auth === "signed-out" ? (null) : (
             // Desktop: no session, nothing to sign in to. A quiet badge keeps the
             // layout stable and tells the user which build they are running.
             <span className="rounded-md border border-slate-800 px-2 py-1 text-[0.7rem] font-medium uppercase tracking-wide text-slate-500">
@@ -107,3 +100,12 @@ export default function Navbar() {
     </Suspense>
   );
 }
+
+
+
+
+
+
+
+
+

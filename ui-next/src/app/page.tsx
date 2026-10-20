@@ -3,7 +3,6 @@
 import Link from "next/link";
 import useSWR from "swr";
 import { useState } from "react";
-import { SignInButton, useUser } from "@clerk/nextjs";
 import {
   FileJson,
   FileText,
@@ -173,14 +172,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
             generated report.
           </p>
           <div className="mt-4">
-            <SignInButton mode="modal">
-              <button
-                type="button"
-                className="rounded-lg bg-sky-500 px-4 py-2 text-sm font-semibold text-slate-950 transition-colors hover:bg-sky-400"
-              >
-                Sign in
-              </button>
-            </SignInButton>
+            
           </div>
         </section>
       )}
@@ -235,7 +227,7 @@ function WebDashboard() {
   const { isLoaded, isSignedIn } = useUser();
 
   if (!isLoaded) return <Dashboard auth="loading" />;
-  return <Dashboard auth={isSignedIn ? "signed-in" : "signed-out"} />;
+  return <Dashboard auth="local" />;
 }
 
 export default function DashboardPage() {
@@ -244,3 +236,10 @@ export default function DashboardPage() {
 
   return <WebDashboard />;
 }
+
+// Local stubs instead of Clerk (dev/desktop: no Clerk keys needed).
+const SignInButton = ({ children }: { children?: React.ReactNode }) => <>{children}</>;
+const useUser = () => ({ isLoaded: true, isSignedIn: false as const, user: null });
+
+
+

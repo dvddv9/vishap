@@ -820,7 +820,11 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         "loss_pct": loss_pct,
         "material_complete": not truncated,   # deterministic: flag from run_pipeline
         "threshold": LOSS_THRESHOLD,
-        "verdict": "ACCEPTABLE" if loss_pct <= LOSS_THRESHOLD else "INCOMPLETE",
+        "llm_error": bool(llm_error),
+        "verdict": (
+            "ERROR" if llm_error
+            else ("ACCEPTABLE" if loss_pct <= LOSS_THRESHOLD else "INCOMPLETE")
+        ),
     }
 
     if verbose:

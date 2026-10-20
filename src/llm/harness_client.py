@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Harness client - direct DSH (DeepSeek Harness) integration."""
 from __future__ import annotations
 
@@ -12,8 +12,12 @@ from pathlib import Path
 import httpx
 import zstandard
 
+from dotenv import load_dotenv
+load_dotenv()
+
 DEFAULT_URL = os.getenv("HARNESS_URL", "http://127.0.0.1:3080")
 DEFAULT_TOKEN = os.getenv("HARNESS_TOKEN", "")
+DEFAULT_COOKIE = os.getenv("HARNESS_COOKIE", "")
 POLL_INTERVAL = 1.0
 POLL_TIMEOUT = 600.0
 
@@ -22,7 +26,7 @@ def _resolve_token(token: str | None) -> str:
     """Explicit token > `HARNESS_TOKEN` > whichever candidate the harness accepts.
 
     `dsh web` issues a fresh token on every start, so a static `.env` value goes
-    stale as soon as the launcher starts the harness itself — that is what
+    stale as soon as the launcher starts the harness itself вЂ” that is what
     produced `auth failed: HTTP 401` in the desktop app. The launcher probes the
     candidates and returns the one that actually authenticates.
     """
@@ -48,17 +52,24 @@ class HarnessClient:
     def __init__(self, url=DEFAULT_URL, token=DEFAULT_TOKEN, cwd=None, timeout=30.0):
         self.url = url.rstrip("/")
         self.token = _resolve_token(token)
+        self.cookie = DEFAULT_COOKIE.strip()
         self.cwd = cwd or str(Path.cwd())
         self.timeout = timeout
         self._client = httpx.Client(timeout=timeout, follow_redirects=True)
+        if self.cookie:
+            name, _, value = self.cookie.partition("=")
+            self._client.cookies.set(name, value)
         self._authed = False
 
     def _auth(self):
         if self._authed:
             return
-        if not self.token:
-            raise HarnessError("HARNESS_TOKEN empty")
-        r = self._client.get(f"{self.url}/", params={"token": self.token})
+        if self.cookie:
+            r = self._client.get(f"{self.url}/")
+        elif self.token:
+            r = self._client.get(f"{self.url}/" , params={"token": self.token})
+        else:
+            raise HarnessError("HARNESS_TOKEN and HARNESS_COOKIE both empty")
         if r.status_code != 200:
             raise HarnessError(f"auth failed: HTTP {r.status_code}")
         self._authed = True

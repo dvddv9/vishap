@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-Конфигурация Vishap.
+РљРѕРЅС„РёРіСѓСЂР°С†РёСЏ Vishap.
 """
 import os
 import warnings
@@ -9,17 +9,17 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# === Пути ===
+# === РџСѓС‚Рё ===
 ROOT_DIR = Path(__file__).parent.parent
 
-# DATA_DIR — вне site-packages (env > ~/.vishap/data)
+# DATA_DIR вЂ” РІРЅРµ site-packages (env > ~/.vishap/data)
 _env_data = os.getenv("VISHAP_DATA_DIR")
 if _env_data:
     DATA_DIR = Path(_env_data)
 else:
     DATA_DIR = Path.home() / ".vishap" / "data"
 
-# PROMPTS_DIR — внутри пакета vishap/ (installed) или ROOT/vishap (dev)
+# PROMPTS_DIR вЂ” РІРЅСѓС‚СЂРё РїР°РєРµС‚Р° vishap/ (installed) РёР»Рё ROOT/vishap (dev)
 try:
     import vishap as _vishap_pkg
     PROMPTS_DIR = Path(_vishap_pkg.__file__).parent
@@ -49,24 +49,24 @@ ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "false").lower() == "true"
 SEARCH_MAX_RESULTS = int(os.getenv("SEARCH_MAX_RESULTS", "5"))
 SEARCH_DEPTH = os.getenv("SEARCH_DEPTH", "basic")
 
-# === Режим LLM ===
+# === Р РµР¶РёРј LLM ===
 MODE = "auto"
 
-# === Генерация ===
+# === Р“РµРЅРµСЂР°С†РёСЏ ===
 TEMPERATURE = 0.0
 TEMPERATURE_CREATIVE = 0.3
 MAX_TOKENS = 8000
 MAX_TOKENS_STAGE4 = 16000
 
-# === Сервер ===
-PORT = 5001
+# === РЎРµСЂРІРµСЂ ===
+PORT = int(os.getenv("PORT", "5001") or 5001)
 APP_NAME = "Vishap"
 
-# === Логирование (structlog, v6.1) ===
+# === Р›РѕРіРёСЂРѕРІР°РЅРёРµ (structlog, v6.1) ===
 LOG_LEVEL = os.getenv("LOG_LEVEL", "INFO")
 LOG_FORMAT = os.getenv("LOG_FORMAT", "pretty")  # pretty | json
 
-# === Безопасность (Fernet, v6.1) ===
+# === Р‘РµР·РѕРїР°СЃРЅРѕСЃС‚СЊ (Fernet, v6.1) ===
 FERNET_KEY = os.getenv("FERNET_KEY", "")
 
 # === GitHub App (v6.1) ===
@@ -96,7 +96,7 @@ SMTP_USER = os.getenv("SMTP_USER", "")
 SMTP_PASSWORD = os.getenv("SMTP_PASSWORD", "")
 SMTP_FROM = os.getenv("SMTP_FROM", "") or SMTP_USER
 
-# === Данные ===
+# === Р”Р°РЅРЅС‹Рµ ===
 DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
@@ -136,3 +136,4 @@ def validate_config(strict: bool | None = None) -> list[str]:
     # module, so using the logger here would be circular.
     warnings.warn(detail, RuntimeWarning, stacklevel=2)
     return missing
+

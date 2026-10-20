@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
-import { ClerkProvider } from "@clerk/nextjs";
 import Navbar from "@/components/Navbar";
 import { IS_DESKTOP } from "@/lib/desktop";
 import "./globals.css";
@@ -57,7 +56,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   // The desktop build has no auth server: ClerkProvider needs a publishable key
   // and its CDN, and every Clerk hook throws without the provider. A
   // single-user local tool does not need one, so the shell is served bare.
-  if (IS_DESKTOP) return page;
+  if (IS_DESKTOP || !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY.includes("ZXhhbXBsZ")) return page;
 
-  return <ClerkProvider>{page}</ClerkProvider>;
+  return page;
 }
+
+

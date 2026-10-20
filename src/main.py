@@ -1,8 +1,9 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """
-Vishap вЂ” FastAPI СЃРµСЂРІРµСЂ.
+Vishap Р Р†Р вЂљРІР‚Сњ FastAPI Р РЋР С“Р В Р’ВµР РЋР вЂљР В Р вЂ Р В Р’ВµР РЋР вЂљ.
 """
 from contextlib import asynccontextmanager
+from pathlib import Path
 import json
 import os
 import threading
@@ -83,11 +84,11 @@ async def lifespan(app: FastAPI):
     # stops the server here instead of surfacing as a 500 on the first request.
     # VISHAP_DEV=true downgrades this to a warning.
     validate_config()
-    print(f"=== {APP_NAME} API Р·Р°РїСѓСЃРєР°РµС‚СЃСЏ ===")
-    print(f"РћС‚РєСЂРѕР№ РІ Р±СЂР°СѓР·РµСЂРµ: http://localhost:{PORT}/docs")
+    print(f"=== {APP_NAME} API Р В Р’В·Р В Р’В°Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р В РЎвЂќР В Р’В°Р В Р’ВµР РЋРІР‚С™Р РЋР С“Р РЋР РЏ ===")
+    print(f"Р В РЎвЂєР РЋРІР‚С™Р В РЎвЂќР РЋР вЂљР В РЎвЂўР В РІвЂћвЂ“ Р В Р вЂ  Р В Р’В±Р РЋР вЂљР В Р’В°Р РЋРЎвЂњР В Р’В·Р В Р’ВµР РЋР вЂљР В Р’Вµ: http://localhost:{PORT}/docs")
     _start_harness_in_background()
     yield
-    print(f"=== {APP_NAME} API РѕСЃС‚Р°РЅРѕРІР»РµРЅ ===")
+    print(f"=== {APP_NAME} API Р В РЎвЂўР РЋР С“Р РЋРІР‚С™Р В Р’В°Р В Р вЂ¦Р В РЎвЂўР В Р вЂ Р В Р’В»Р В Р’ВµР В Р вЂ¦ ===")
 
 
 # structlog: pretty in dev, JSON in prod (LOG_FORMAT=json)
@@ -100,7 +101,7 @@ setup_tracing()
 
 app = FastAPI(
     title=f"{APP_NAME} API",
-    description="Vishap V6.0.3 вЂ” 6-СЃС‚Р°РґРёР№РЅС‹Р№ LLM-РєРѕРЅРІРµР№РµСЂ РґР»СЏ Р°РЅР°Р»РёР·Р° РєРѕРґР°",
+    description="Vishap V6.0.3 Р Р†Р вЂљРІР‚Сњ 6-Р РЋР С“Р РЋРІР‚С™Р В Р’В°Р В РўвЂР В РЎвЂР В РІвЂћвЂ“Р В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ LLM-Р В РЎвЂќР В РЎвЂўР В Р вЂ¦Р В Р вЂ Р В Р’ВµР В РІвЂћвЂ“Р В Р’ВµР РЋР вЂљ Р В РўвЂР В Р’В»Р РЋР РЏ Р В Р’В°Р В Р вЂ¦Р В Р’В°Р В Р’В»Р В РЎвЂР В Р’В·Р В Р’В° Р В РЎвЂќР В РЎвЂўР В РўвЂР В Р’В°",
     version="6.4.0",
     lifespan=lifespan,
 )
@@ -144,13 +145,13 @@ async def log_requests(request, call_next):
         clear_context()
 
 
-# === Pydantic-СЃС…РµРјС‹ ===
+# === Pydantic-Р РЋР С“Р РЋРІР‚В¦Р В Р’ВµР В РЎВР РЋРІР‚в„– ===
 
 class AnalyzeRequest(BaseModel):
     force: bool = False
-    material: str = Field(..., description="РљРѕРґ, spec, logs вЂ” С‡С‚Рѕ Р°РЅР°Р»РёР·РёСЂРѕРІР°С‚СЊ")
-    filename: str = Field(default="input.txt", description="РРјСЏ С„Р°Р№Р»Р° (РґР»СЏ РєРѕРЅС‚РµРєСЃС‚Р°)")
-    verbose: bool = Field(default=False, description="РџРѕРґСЂРѕР±РЅС‹Рµ Р»РѕРіРё РІ РѕС‚РІРµС‚Рµ")
+    material: str = Field(..., description="Р В РЎв„ўР В РЎвЂўР В РўвЂ, spec, logs Р Р†Р вЂљРІР‚Сњ Р РЋРІР‚РЋР РЋРІР‚С™Р В РЎвЂў Р В Р’В°Р В Р вЂ¦Р В Р’В°Р В Р’В»Р В РЎвЂР В Р’В·Р В РЎвЂР РЋР вЂљР В РЎвЂўР В Р вЂ Р В Р’В°Р РЋРІР‚С™Р РЋР Р‰")
+    filename: str = Field(default="input.txt", description="Р В Р’ВР В РЎВР РЋР РЏ Р РЋРІР‚С›Р В Р’В°Р В РІвЂћвЂ“Р В Р’В»Р В Р’В° (Р В РўвЂР В Р’В»Р РЋР РЏ Р В РЎвЂќР В РЎвЂўР В Р вЂ¦Р РЋРІР‚С™Р В Р’ВµР В РЎвЂќР РЋР С“Р РЋРІР‚С™Р В Р’В°)")
+    verbose: bool = Field(default=False, description="Р В РЎСџР В РЎвЂўР В РўвЂР РЋР вЂљР В РЎвЂўР В Р’В±Р В Р вЂ¦Р РЋРІР‚в„–Р В Р’Вµ Р В Р’В»Р В РЎвЂўР В РЎвЂ“Р В РЎвЂ Р В Р вЂ  Р В РЎвЂўР РЋРІР‚С™Р В Р вЂ Р В Р’ВµР РЋРІР‚С™Р В Р’Вµ")
 
 
 class AnalyzeResponse(BaseModel):
@@ -188,14 +189,14 @@ class HistoryItem(BaseModel):
 
 
 class BatchItem(BaseModel):
-    material: str = Field(..., description="РљРѕРґ / spec / logs")
-    filename: str = Field(default="input.txt", description="РРјСЏ С„Р°Р№Р»Р°")
+    material: str = Field(..., description="Р В РЎв„ўР В РЎвЂўР В РўвЂ / spec / logs")
+    filename: str = Field(default="input.txt", description="Р В Р’ВР В РЎВР РЋР РЏ Р РЋРІР‚С›Р В Р’В°Р В РІвЂћвЂ“Р В Р’В»Р В Р’В°")
 
 
 class BatchRequest(BaseModel):
-    items: list[BatchItem] = Field(..., description="РЎРїРёСЃРѕРє РјР°С‚РµСЂРёР°Р»РѕРІ")
+    items: list[BatchItem] = Field(..., description="Р В Р Р‹Р В РЎвЂ”Р В РЎвЂР РЋР С“Р В РЎвЂўР В РЎвЂќ Р В РЎВР В Р’В°Р РЋРІР‚С™Р В Р’ВµР РЋР вЂљР В РЎвЂР В Р’В°Р В Р’В»Р В РЎвЂўР В Р вЂ ")
     max_concurrent: int = Field(default=3, ge=1, le=10,
-                                description="РњР°РєСЃ. РїР°СЂР°Р»Р»РµР»СЊРЅС‹С… LLM-РІС‹Р·РѕРІРѕРІ (1..10)")
+                                description="Р В РЎС™Р В Р’В°Р В РЎвЂќР РЋР С“. Р В РЎвЂ”Р В Р’В°Р РЋР вЂљР В Р’В°Р В Р’В»Р В Р’В»Р В Р’ВµР В Р’В»Р РЋР Р‰Р В Р вЂ¦Р РЋРІР‚в„–Р РЋРІР‚В¦ LLM-Р В Р вЂ Р РЋРІР‚в„–Р В Р’В·Р В РЎвЂўР В Р вЂ Р В РЎвЂўР В Р вЂ  (1..10)")
 
 
 class BatchResponseItem(BaseModel):
@@ -249,6 +250,11 @@ async def health():
     }
 
 
+
+class ModeRequest(BaseModel):
+    mode: Literal["harness", "deepseek"]
+
+
 @app.get("/harness/status")
 async def harness_status_endpoint():
     """Fresh probe of the only LLM path.
@@ -270,7 +276,7 @@ def _ensure_harness_safely() -> None:
 def harness_start(background: BackgroundTasks):
     """Start ``dsh web`` when it is not answering.
 
-    Returns immediately (``202``) and runs `ensure_harness()` in the background —
+    Returns immediately (``202``) and runs `ensure_harness()` in the background РІР‚вЂќ
     starting a harness can take ~30 s, and the caller is a UI button. The client
     polls `/harness/status` until `reachable` flips to true.
     """
@@ -280,7 +286,7 @@ def harness_start(background: BackgroundTasks):
 
 @app.delete("/status/{job_id}", dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
 async def delete_status(job_id: str, tenant: str = Depends(current_tenant)):
-    """Forget a job — what the UI's delete button calls.
+    """Forget a job РІР‚вЂќ what the UI's delete button calls.
 
     Removes the job record (status/report lookups then answer 404). The Markdown
     file already written under `data/` is left alone: the audit trail is
@@ -377,13 +383,13 @@ async def stripe_webhook(request: Request):
 @traced("analyze")
 async def analyze(req: AnalyzeRequest):
     """
-    Р—Р°РїСѓСЃРєР°РµС‚ РїРѕР»РЅС‹Р№ pipeline Vishap V5.9.
+    Р В РІР‚вЂќР В Р’В°Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р В РЎвЂќР В Р’В°Р В Р’ВµР РЋРІР‚С™ Р В РЎвЂ”Р В РЎвЂўР В Р’В»Р В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ pipeline Vishap V5.9.
     
-    Р’С…РѕРґ: РєРѕРґ / spec / logs.
-    Р’С‹С…РѕРґ: С„РёРЅР°Р»СЊРЅС‹Р№ Markdown-РѕС‚С‡С‘С‚ + РјРµС‚Р°РґР°РЅРЅС‹Рµ.
+    Р В РІР‚в„ўР РЋРІР‚В¦Р В РЎвЂўР В РўвЂ: Р В РЎвЂќР В РЎвЂўР В РўвЂ / spec / logs.
+    Р В РІР‚в„ўР РЋРІР‚в„–Р РЋРІР‚В¦Р В РЎвЂўР В РўвЂ: Р РЋРІР‚С›Р В РЎвЂР В Р вЂ¦Р В Р’В°Р В Р’В»Р РЋР Р‰Р В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ Markdown-Р В РЎвЂўР РЋРІР‚С™Р РЋРІР‚РЋР РЋРІР‚ВР РЋРІР‚С™ + Р В РЎВР В Р’ВµР РЋРІР‚С™Р В Р’В°Р В РўвЂР В Р’В°Р В Р вЂ¦Р В Р вЂ¦Р РЋРІР‚в„–Р В Р’Вµ.
     """
     if not req.material.strip():
-        raise HTTPException(status_code=400, detail="material РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј")
+        raise HTTPException(status_code=400, detail="material Р В Р вЂ¦Р В Р’Вµ Р В РЎВР В РЎвЂўР В Р’В¶Р В Р’ВµР РЋРІР‚С™ Р В Р’В±Р РЋРІР‚в„–Р РЋРІР‚С™Р РЋР Р‰ Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р РЋРІР‚в„–Р В РЎВ")
 
     # === Idempotency: check if same material already analyzed ===
     from src.pipeline.orchestrator import compute_hash
@@ -486,21 +492,21 @@ async def analyze_secure(req: AnalyzeRequest, user: dict = Depends(current_user)
 @app.post("/analyze/batch", response_model=BatchResponse, dependencies=[Depends(verify_api_key), Depends(rate_limit_analyze)])
 async def analyze_batch(req: BatchRequest):
     """
-    РџР°СЂР°Р»Р»РµР»СЊРЅС‹Р№ Р°РЅР°Р»РёР· СЃРїРёСЃРєР° РјР°С‚РµСЂРёР°Р»РѕРІ.
+    Р В РЎСџР В Р’В°Р РЋР вЂљР В Р’В°Р В Р’В»Р В Р’В»Р В Р’ВµР В Р’В»Р РЋР Р‰Р В Р вЂ¦Р РЋРІР‚в„–Р В РІвЂћвЂ“ Р В Р’В°Р В Р вЂ¦Р В Р’В°Р В Р’В»Р В РЎвЂР В Р’В· Р РЋР С“Р В РЎвЂ”Р В РЎвЂР РЋР С“Р В РЎвЂќР В Р’В° Р В РЎВР В Р’В°Р РЋРІР‚С™Р В Р’ВµР РЋР вЂљР В РЎвЂР В Р’В°Р В Р’В»Р В РЎвЂўР В Р вЂ .
 
-    Р’С…РѕРґ: СЃРїРёСЃРѕРє {material, filename}.
-    Р’С‹С…РѕРґ: СЃРїРёСЃРѕРє СЂРµР·СѓР»СЊС‚Р°С‚РѕРІ РІ С‚РѕРј Р¶Рµ РїРѕСЂСЏРґРєРµ.
+    Р В РІР‚в„ўР РЋРІР‚В¦Р В РЎвЂўР В РўвЂ: Р РЋР С“Р В РЎвЂ”Р В РЎвЂР РЋР С“Р В РЎвЂўР В РЎвЂќ {material, filename}.
+    Р В РІР‚в„ўР РЋРІР‚в„–Р РЋРІР‚В¦Р В РЎвЂўР В РўвЂ: Р РЋР С“Р В РЎвЂ”Р В РЎвЂР РЋР С“Р В РЎвЂўР В РЎвЂќ Р РЋР вЂљР В Р’ВµР В Р’В·Р РЋРЎвЂњР В Р’В»Р РЋР Р‰Р РЋРІР‚С™Р В Р’В°Р РЋРІР‚С™Р В РЎвЂўР В Р вЂ  Р В Р вЂ  Р РЋРІР‚С™Р В РЎвЂўР В РЎВ Р В Р’В¶Р В Р’Вµ Р В РЎвЂ”Р В РЎвЂўР РЋР вЂљР РЋР РЏР В РўвЂР В РЎвЂќР В Р’Вµ.
 
-    max_concurrent: 1..10 (РїРѕ СѓРјРѕР»С‡Р°РЅРёСЋ 3). Р‘РѕР»СЊС€Рµ 10 вЂ” СЂРёСЃРє harness overload.
+    max_concurrent: 1..10 (Р В РЎвЂ”Р В РЎвЂў Р РЋРЎвЂњР В РЎВР В РЎвЂўР В Р’В»Р РЋРІР‚РЋР В Р’В°Р В Р вЂ¦Р В РЎвЂР РЋР вЂ№ 3). Р В РІР‚ВР В РЎвЂўР В Р’В»Р РЋР Р‰Р РЋРІвЂљВ¬Р В Р’Вµ 10 Р Р†Р вЂљРІР‚Сњ Р РЋР вЂљР В РЎвЂР РЋР С“Р В РЎвЂќ harness overload.
     """
     if not req.items:
-        raise HTTPException(status_code=400, detail="items РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј")
+        raise HTTPException(status_code=400, detail="items Р В Р вЂ¦Р В Р’Вµ Р В РЎВР В РЎвЂўР В Р’В¶Р В Р’ВµР РЋРІР‚С™ Р В Р’В±Р РЋРІР‚в„–Р РЋРІР‚С™Р РЋР Р‰ Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р РЋРІР‚в„–Р В РЎВ")
 
     for i, item in enumerate(req.items):
         if not item.material.strip():
             raise HTTPException(
                 status_code=400,
-                detail=f"items[{i}].material РЅРµ РјРѕР¶РµС‚ Р±С‹С‚СЊ РїСѓСЃС‚С‹Рј",
+                detail=f"items[{i}].material Р В Р вЂ¦Р В Р’Вµ Р В РЎВР В РЎвЂўР В Р’В¶Р В Р’ВµР РЋРІР‚С™ Р В Р’В±Р РЋРІР‚в„–Р РЋРІР‚С™Р РЋР Р‰ Р В РЎвЂ”Р РЋРЎвЂњР РЋР С“Р РЋРІР‚С™Р РЋРІР‚в„–Р В РЎВ",
             )
 
     materials = [(item.material, item.filename) for item in req.items]
@@ -574,7 +580,7 @@ async def analyze_sarif(req: AnalyzeRequest):
 
 @app.get("/history", response_model=list[HistoryItem])
 async def history(limit: int = 20, tenant: str = Depends(current_tenant)):
-    """Р’РѕР·РІСЂР°С‰Р°РµС‚ РїРѕСЃР»РµРґРЅРёРµ N Р·Р°РїРёСЃРµР№ С‚РµРєСѓС‰РµРіРѕ tenant."""
+    """Р В РІР‚в„ўР В РЎвЂўР В Р’В·Р В Р вЂ Р РЋР вЂљР В Р’В°Р РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™ Р В РЎвЂ”Р В РЎвЂўР РЋР С“Р В Р’В»Р В Р’ВµР В РўвЂР В Р вЂ¦Р В РЎвЂР В Р’Вµ N Р В Р’В·Р В Р’В°Р В РЎвЂ”Р В РЎвЂР РЋР С“Р В Р’ВµР В РІвЂћвЂ“ Р РЋРІР‚С™Р В Р’ВµР В РЎвЂќР РЋРЎвЂњР РЋРІР‚В°Р В Р’ВµР В РЎвЂ“Р В РЎвЂў tenant."""
     with tenant_scope(tenant):
         items = load_history(tenant_id=tenant)
         return [
@@ -594,7 +600,7 @@ async def history(limit: int = 20, tenant: str = Depends(current_tenant)):
 
 @app.post("/history/clear", dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
 async def history_clear(tenant: str = Depends(current_tenant)):
-    """РћС‡РёС‰Р°РµС‚ РёСЃС‚РѕСЂРёСЋ С‚РѕР»СЊРєРѕ С‚РµРєСѓС‰РµРіРѕ tenant."""
+    """Р В РЎвЂєР РЋРІР‚РЋР В РЎвЂР РЋРІР‚В°Р В Р’В°Р В Р’ВµР РЋРІР‚С™ Р В РЎвЂР РЋР С“Р РЋРІР‚С™Р В РЎвЂўР РЋР вЂљР В РЎвЂР РЋР вЂ№ Р РЋРІР‚С™Р В РЎвЂўР В Р’В»Р РЋР Р‰Р В РЎвЂќР В РЎвЂў Р РЋРІР‚С™Р В Р’ВµР В РЎвЂќР РЋРЎвЂњР РЋРІР‚В°Р В Р’ВµР В РЎвЂ“Р В РЎвЂў tenant."""
     from src.storage.history import clear_history
 
     with tenant_scope(tenant):
@@ -611,7 +617,7 @@ async def audit_export(
     limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     tenant: str = Depends(current_tenant),
 ):
-    """Р­РєСЃРїРѕСЂС‚ audit trail С‚РµРєСѓС‰РµРіРѕ tenant РІ CSV РёР»Рё JSON."""
+    """Р В Р’В­Р В РЎвЂќР РЋР С“Р В РЎвЂ”Р В РЎвЂўР РЋР вЂљР РЋРІР‚С™ audit trail Р РЋРІР‚С™Р В Р’ВµР В РЎвЂќР РЋРЎвЂњР РЋРІР‚В°Р В Р’ВµР В РЎвЂ“Р В РЎвЂў tenant Р В Р вЂ  CSV Р В РЎвЂР В Р’В»Р В РЎвЂ JSON."""
     with tenant_scope(tenant):
         return await export_audit(
             format=format,
@@ -620,25 +626,6 @@ async def audit_export(
             status=status,
             limit=limit,
         )
-
-
-@app.get("/mode", response_model=ModeResponse)
-async def get_mode_endpoint():
-    """Р’РѕР·РІСЂР°С‰Р°РµС‚ С‚РµРєСѓС‰РёР№ СЂРµР¶РёРј LLM."""
-    from src.storage.mode import get_mode, VALID_MODES
-    return ModeResponse(mode=get_mode(), valid_modes=list(VALID_MODES))
-
-
-@app.post("/mode", response_model=ModeResponse, dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
-async def set_mode_endpoint(req: ModeRequest):
-    """РЈСЃС‚Р°РЅР°РІР»РёРІР°РµС‚ СЂРµР¶РёРј LLM (auto / cloud / local)."""
-    from src.storage.mode import set_mode, get_mode, VALID_MODES
-    if not set_mode(req.mode):
-        raise HTTPException(
-            status_code=400,
-            detail=f"Invalid mode: {req.mode}. Valid: {list(VALID_MODES)}",
-        )
-    return ModeResponse(mode=get_mode(), valid_modes=list(VALID_MODES))
 
 
 # ============================================================
@@ -748,7 +735,7 @@ async def download_report(job_id: str, tenant: str = Depends(current_tenant)):
 
     Two sources, in order: the `.md` file on disk, then `final_markdown` inside
     the job result. The second one matters because the file is written by
-    whatever process ran the pipeline — with a Celery worker that is a different
+    whatever process ran the pipeline РІР‚вЂќ with a Celery worker that is a different
     process, possibly on a different host with a different data directory.
     Serving from the job result means a finished job is always downloadable, and
     the missing file simply gets repaired for next time.
@@ -784,17 +771,17 @@ async def download_report(job_id: str, tenant: str = Depends(current_tenant)):
         raise HTTPException(status_code=404, detail="report not found")
 
 
-# CORS — applied as an explicit outer wrap so it also covers error responses.
+# CORS РІР‚вЂќ applied as an explicit outer wrap so it also covers error responses.
 #
 # Loopback UIs only: Next dev (:3000), the Tauri desktop shell
 # (`http://tauri.localhost` / `tauri://localhost`), plus any loopback port via the
 # regex. `allow_private_network` answers the Private Network Access preflight the
 # desktop webview sends (its origin is the public address space, `127.0.0.1` is
-# local) — see the notes in the CORS comment at the top.
+# local) РІР‚вЂќ see the notes in the CORS comment at the top.
 #
 # `app` stays the FastAPI instance (tests import it directly); `cors_app` is what
 # the server actually runs. The outer wrap is what puts `Access-Control-Allow-Origin`
-# on unhandled-500 responses too — a bare 500 from ServerErrorMiddleware would
+# on unhandled-500 responses too РІР‚вЂќ a bare 500 from ServerErrorMiddleware would
 # otherwise have no CORS header and the webview would report "blocked by CORS".
 cors_app = CORSMiddleware(
     app,
@@ -828,3 +815,8 @@ if __name__ == "__main__":
         port=PORT,
         reload=False,
     )
+
+
+
+
+

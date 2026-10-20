@@ -1,16 +1,16 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 """Find, probe and (optionally) start a local DSH harness.
 
 Vishap's only LLM path is the DeepSeek Harness, so a stale harness is the single
 most likely reason for "the analysis returns nothing". This module makes that
 failure visible and, when asked, fixes it:
 
-- `find_harness_command()` — locate the `dsh` CLI (`HARNESS_CMD` wins, then PATH,
+- `find_harness_command()` вЂ” locate the `dsh` CLI (`HARNESS_CMD` wins, then PATH,
   then the Windows desktop install path).
-- `probe()` — is the harness answering on `HARNESS_URL` with `HARNESS_TOKEN`.
-- `ensure_harness()` — probe, and if it is down and ``HARNESS_AUTOSTART`` is on,
+- `probe()` вЂ” is the harness answering on `HARNESS_URL` with `HARNESS_TOKEN`.
+- `ensure_harness()` вЂ” probe, and if it is down and ``HARNESS_AUTOSTART`` is on,
   spawn `dsh web` detached and poll until it answers (bounded).
-- `status()` — cached snapshot for `/health` (no extra HTTP in the hot path).
+- `status()` вЂ” cached snapshot for `/health` (no extra HTTP in the hot path).
 
 Autostart is skipped unless the URL is loopback: starting a process on a host you
 do not control is not this module's job.
@@ -40,7 +40,7 @@ PROBE_TIMEOUT = 1.5
 #: `dsh web` prints its URL with a one-time token; that token is the only way in.
 TOKEN_RE = re.compile(r"token=([A-Za-z0-9._~-]+)")
 
-#: Must match the Tauri bundle identifier — the same directory the desktop shell
+#: Must match the Tauri bundle identifier вЂ” the same directory the desktop shell
 #: uses for logs and its WebView2 profile.
 IDENTIFIER = "com.vishap.desktop"
 
@@ -92,7 +92,7 @@ def token_from_spawn_log() -> str:
 def resolve_token() -> str:
     """First *candidate* token: env, then the saved one, then the spawn log.
 
-    Ordering is only a guess — `pick_token()` is what actually decides, because a
+    Ordering is only a guess вЂ” `pick_token()` is what actually decides, because a
     token left in `.env` goes stale the moment the harness restarts.
     """
     return next(iter(candidate_tokens()), "")
@@ -119,7 +119,7 @@ def pick_token(url: str | None = None,
     """Return ``(token, error)`` for the first candidate that authenticates.
 
     `dsh web` issues a new token on every start, so "the token in the file" is
-    not a reliable answer — only a successful probe is.
+    not a reliable answer вЂ” only a successful probe is.
     """
     global _WORKING_TOKEN
     if _WORKING_TOKEN:
@@ -193,7 +193,7 @@ def probe(url: str | None = None, token: str | None = None,
     if not token:
         return False, "HARNESS_TOKEN empty"
     try:
-        r = httpx.get(f"{url}/", params={"token": token}, timeout=timeout)
+        r = httpx.get(f"{url}/", params={"token": token}, timeout=timeout, follow_redirects=True)
     except Exception as e:  # connection refused, DNS, timeout, ...
         return False, f"{type(e).__name__}: {e}"
     if r.status_code != 200:
@@ -205,7 +205,7 @@ def _spawn(command: str, cwd: str | None = None) -> None:
     """Start ``dsh web`` detached and capture its output in a file.
 
     A pipe cannot be used: the child outlives us and would block on a full pipe.
-    A file also gives us the **token** DSH prints at startup — without it every
+    A file also gives us the **token** DSH prints at startup вЂ” without it every
     later request is `HTTP 401`. ``--no-open`` keeps it from popping a browser
     tab on every start.
     """
@@ -303,7 +303,7 @@ def ensure_harness(url: str | None = None, token: str | None = None,
     refreshes the cached state used by :func:`status`.
 
     When the harness is started here, its one-time token is read back from
-    ``logs/harness-spawn.log`` and remembered in ``harness-token.txt`` — that is
+    ``logs/harness-spawn.log`` and remembered in ``harness-token.txt`` вЂ” that is
     what makes autostart actually usable instead of returning 401.
     """
     global _STATE
@@ -427,3 +427,4 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
+

@@ -1,4 +1,4 @@
-.venv/
+﻿.venv/
 __pycache__/
 *.pyc
 .env
@@ -14,7 +14,7 @@ build/
 dist/
 !examples/multi/incident.log
 
-# Temporary scripts (do not commit) — only at repo root
+# Temporary scripts (do not commit) вЂ” only at repo root
 /fix_*.py
 /build_*.py
 /make_*.py
@@ -27,7 +27,7 @@ dist/
 /check_*.py
 /rc*.py
 
-# Test scripts (do not commit) — only at repo root
+# Test scripts (do not commit) вЂ” only at repo root
 /test_*.py
 
 # backups / temp
@@ -44,7 +44,7 @@ sbom.json
 # SARIF output
 *.sarif
 
-# Working dogfood inputs (не коммитим -- копии в docs/case-studies)
+# Working dogfood inputs (РЅРµ РєРѕРјРјРёС‚РёРј -- РєРѕРїРёРё РІ docs/case-studies)
 /examples/dogfood/
 
 # Throwaway patch scripts (one-off)
@@ -85,3 +85,6 @@ docs-site/.cache-loader/
 docs-site/.env.local
 docs-site/npm-debug.log*
 poc-backup/
+node_modules/
+.vishap_tmp/
+stage4/

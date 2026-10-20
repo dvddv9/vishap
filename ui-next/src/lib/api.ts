@@ -1,4 +1,4 @@
-import type { AnalyzeResponse, HarnessStatus, Job, Report } from "./types";
+﻿import type { AnalyzeResponse, HarnessStatus, Job, Report } from "./types";
 import { IS_DESKTOP } from "./desktop";
 
 /** Base URL of the FastAPI backend. */
@@ -7,7 +7,7 @@ export const API_URL = (process.env.NEXT_PUBLIC_API_URL ?? "http://127.0.0.1:500
   "",
 );
 
-/** Optional key — the backend only enforces it when VISHAP_API_KEY is set. */
+/** Optional key вЂ” the backend only enforces it when VISHAP_API_KEY is set. */
 const API_KEY = process.env.NEXT_PUBLIC_API_KEY ?? "";
 
 type TauriInvoke = (cmd: string, args?: Record<string, unknown>) => Promise<unknown>;
@@ -99,7 +99,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
   }
 
   // WebView2 can surface a CORS/PNA block as a `Response` with `status: 0` (or an
-  // opaque response) instead of throwing — treat that exactly like a network
+  // opaque response) instead of throwing вЂ” treat that exactly like a network
   // failure and route it through the IPC bridge too.
   if (response.status === 0 || response.type === "opaque") {
     if (canUseTauri) {
@@ -219,7 +219,7 @@ export function saveLocalJobs(jobs: Job[]): void {
   try {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(jobs.slice(0, MAX_REMEMBERED)));
   } catch {
-    /* storage full or disabled — the dashboard still works, it just forgets */
+    /* storage full or disabled вЂ” the dashboard still works, it just forgets */
   }
 }
 
@@ -231,3 +231,10 @@ export function rememberJob(job: Job): void {
 export function forgetJob(jobId: string): void {
   saveLocalJobs(listLocalJobs().filter((item) => item.job_id !== jobId));
 }
+
+
+
+
+
+
+
