@@ -88,3 +88,4 @@ poc-backup/
 node_modules/
 .vishap_tmp/
 stage4/
+report_*.md
