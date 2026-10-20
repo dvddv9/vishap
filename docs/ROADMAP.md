@@ -1,134 +1,85 @@
-# Roadmap — Vishap
+﻿# Roadmap — Vishap
 
-**Куда идёт проект. Что отложено и почему.**
-
----
-
-## v5.8 — 2026-10-12 (текущий)
-
-**Статус:** production-ready.
-
-**Сделано:**
-- 10/10 review (audit, hash, API, risk_verdict)
-- 5/5 dogfood P0 (hash collisions, PII redaction, LLM timeout, API auth, EMERGENCY gate)
-- deployment/ (systemd unit, deploy notes)
-- SECURITY.md, LIMITATIONS.md, FAQ.md, CHANGELOG.md
-- PROOF.md (13 доказательств)
-- STONESOUP CWE-129B case study
-- 748 material_hash → 64-hex
+**Where the project is going. What is deferred and why.**
 
 ---
 
-## v5.8 — Q1 2027
+## v7.0 — 2026-10 (current, shipped)
 
-**Фокус:** IT-интеграция + CI-ready.
+**Status:** production-ready slim release.
 
-### P1 — важно
-
-- [ ] **SARIF output** — стандартный формат для GitHub Code Scanning
-- [ ] **OWASP Top 10 mapping** — CWE → OWASP (A03:2025 Injection для CWE-89)
-- [ ] **SAST integration** — Bandit (Python), gosec (Go), Semgrep (multi) до LLM
-- [ ] **SCA integration** — pip-audit, npm audit, govulncheck
-- [ ] **Secret pre-commit hook** — gitleaks/TruffleHog до коммита
-- [ ] **Provenance block** — source, commit, author, date в Metadata
-
-### P2 — желательно
-
-- [ ] **Compliance mapping** — PCI-DSS Req 6.5.1, GDPR Art. 32
-- [ ] **API contract review** — OpenAPI, GraphQL
-- [ ] **Runbook generation** — шаги при инциденте
-- [ ] **Exploitability section** — reachability, blast radius, exploit path
+**Done:**
+- Single UI surface: `ui-next/` (Streamlit removed).
+- Single LLM chain: **DSH harness only** (`HARNESS_URL` / `HARNESS_TOKEN` / `HARNESS_COOKIE`).
+- PyPI publish removed; Docker / compose / Docker Hub removed; deploy = `pip` + `systemd`.
+- Desktop: Tauri app (Windows), auto-start backend from `.venv`, in-memory job store (no Postgres).
+- `start_vishap_dev.bat`: one-click local dev (backend on `PORT=8080`, UI on `:3000`).
+- AGPL-3.0-or-later everywhere (LICENSE, pyproject, README).
+- 6-stage pipeline, SARIF 2.1.0, STRIDE, audit trail, PII redaction, provenance, runbook.
+- Tests: **710 passed, 0 failed** (unit + API; e2e excluded).
 
 ---
 
-## v6.0 — Q2-Q3 2027
+## v7.1 — Q1 2027 (next)
 
-**Фокус:** Enterprise features.
+**Focus:** cross-platform desktop + GitHub App polish.
 
-### Product
+### Desktop (Tauri)
+- [ ] macOS build (`.dmg`, universal binary: Intel + Apple Silicon)
+- [ ] Linux build (`.AppImage`, `.deb`)
+- [ ] Auto-update (Tauri updater, signed artifacts)
+- [ ] WebView2 detection + one-click install prompt (Windows)
+- [ ] Native file picker / drag-and-drop into UI
 
-- [ ] **Multi-tenant** — организации, роли, RBAC
-- [ ] **Webhook CI integration** — GitHub App, GitLab CI
-- [ ] **REST API v2** — async jobs, streaming
-- [ ] **Dashboard** — metrics, trends, MTTR
-- [ ] **Slack/Teams integration** — alerts
+### GitHub App
+- [ ] PR diff auto-analysis (comment inline findings, SARIF upload to Code Scanning)
+- [ ] Check-runs status (pass/fail quality gate)
+- [ ] Installation flow (GitHub App manifest, `GITHUB_APP_ID` / `GITHUB_PRIVATE_KEY` / `GITHUB_WEBHOOK_SECRET`)
+- [ ] Org-level config (`.vishap.yml` per repo)
 
-### LLM
-
-- [ ] **Multi-model** — выбор модели per stage
-- [ ] **Fine-tuning** — на собственных SARD-кейсах
-- [ ] **Prompt caching** — снижение стоимости на 50%+
-- [ ] **Streaming** — progressive output
-
-### Security
-
-- [ ] **Sandbox** — изоляция LLM (Firecracker, gVisor)
-- [ ] **Prompt injection detection** — семантический
-- [ ] **Full PII redaction** — Presidio integration
-- [ ] **Audit log encryption** — at-rest
+### Harness
+- [ ] `HARNESS_COOKIE` auto-refresh (GUI cookie expiry)
+- [ ] Harness health badge (reachable / starting / off)
+- [ ] Fallback: clear error message when harness is not running
 
 ---
 
-## v6.1+ — 2028
+## v7.2 — Q2 2027 (planned)
 
-**Фокус:** Расширение домена.
+**Focus:** SaaS (optional, deferred from v7.0).
 
-- [ ] **Compliance certifications** — SOC2, ISO 27001
-- [ ] **Enterprise SSO** — SAML, OIDC
-- [ ] **On-prem air-gapped** — без интернета
-- [ ] **Multi-language plugins** — Kotlin, Swift, PHP
-- [ ] **K8s operator** — auto-scaling, HA
-
----
-
-## Отложено (и почему)
-
-### 1. Real-time analysis
-
-**Почему отложено:** LLM latency 40-90 сек. Для real-time нужна другая архитектура.
-
-**Когда:** v6.1+ (если будет спрос).
-
-### 2. Custom fine-tuning
-
-**Почему отложено:** требует большого датасета SARD-кейсов + GPU. Дорого.
-
-**Когда:** v6.0 (если будет финансирование).
-
-### 3. Mobile app
-
-**Почему отложено:** Vishap - для разработчиков. Mobile не приоритет.
-
-**Когда:** Никогда (нет use case).
-
-### 4. Closed-source enterprise edition
-
-**Почему отложено:** AGPL не позволяет closed-source. Если нужна enterprise — нужна другая лицензия (dual licensing).
-
-**Когда:** v6.0 (если будет спрос).
+- [ ] Multi-tenant (Clerk orgs, Stripe billing)
+- [ ] Postgres job store (optional; memory still default for desktop)
+- [ ] REST API v2 (async jobs, SSE streaming)
+- [ ] Dashboard (metrics, trends, MTTR)
+- [ ] Slack/Teams alerts
 
 ---
 
-## Non-goals (не делаем)
+## v7.3 — Q3 2027 (planned)
 
-- **Не** IDE plugin (есть Snyk, Semgrep)
-- **Не** CVE база (есть Snyk, Dependabot)
-- **Не** deterministic SAST (есть Semgrep, Bandit)
-- **Не** PR review bot (есть CodeRabbit, Graphite)
+**Focus:** integrations.
 
-**Vishap - комплементарен.** Не заменяет — дополняет.
-
----
-
-## Как голосовать за features
-
-GitHub Issues — https://github.com/dvddv9/vishap/issues
-
-Метки:
-- `roadmap/v5.8` — Q1 2027
-- `roadmap/v6.0` — Q2-Q3 2027
-- `roadmap/v6.1+` — 2028+
+- [ ] GitLab CI integration (webhook + MR comments)
+- [ ] VSCode extension (analyze current file / selection)
+- [ ] CLI improvements (`vishap diff`, `vishap watch`)
+- [ ] SBOM / SCA (CycloneDX, `pip-audit`, `govulncheck`)
 
 ---
 
-*Last updated: 2026-10-12 | Vishap V5.8*
+## Later (2028+)
+
+- [ ] Compliance certifications (SOC2, ISO 27001)
+- [ ] Enterprise SSO (SAML, OIDC)
+- [ ] On-prem air-gapped (no internet)
+- [ ] Multi-language plugins (Kotlin, Swift, PHP)
+- [ ] K8s operator (auto-scaling, HA)
+
+---
+
+## Explicitly deferred
+
+- **Docker / compose / Docker Hub** — removed in v7.0 (slim). Local + `systemd` only.
+- **PyPI publish** — removed in v7.0 (`vishap-analyzer` project deleted on PyPI).
+- **Streamlit UI** — removed in v7.0 (single UI = `ui-next/`).
+- **Direct DeepSeek/OpenAI/Ollama calls** — removed in v7.0 (harness is the only path).
