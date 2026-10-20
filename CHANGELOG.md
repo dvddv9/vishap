@@ -1,3 +1,17 @@
+﻿## [7.0.1] — 2026-10-20
+
+### Fixed
+- `PORT` is now read from `.env` (`src/config.py`), so the API can run on `8080` (or any port) without editing code.
+- `harness_launcher.probe()` follows redirects (`HTTP 303` no longer reported as unreachable).
+- `harness_client.py` loads `.env` before reading `HARNESS_TOKEN` (no more `HARNESS_TOKEN empty` on direct imports).
+- Desktop-mode and job-delete tests updated for harness-only LLM + Clerk stubs; BOM stripped from Python sources.
+
+### Changed
+- README: local dev Quick Start (`PORT=8080`, `start_vishap_dev.bat`, no Docker).
+- `.env.example`: `HARNESS_*`, `PORT=8080`, `HARNESS_AUTOSTART=0`, `LLM_MODE=harness`; `DEEPSEEK_*` removed.
+- `docs/ROADMAP.md` rewritten for v7.x (Tauri cross-platform, GitHub App, SaaS deferred).
+- `publish.yml` removed; PyPI project deleted.
+
 # Changelog
 
 All notable changes to Vishap. Format based on [Keep a Changelog](https://keepachangelog.com/).
@@ -9,9 +23,9 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 ### Added
 
 - **UI: async analysis, LLM mode sidebar, dataflow rendering.**
-  - Custom header (🐉 gradient) + CSS theme.
+  - Custom header (рџђ‰ gradient) + CSS theme.
   - Sidebar: LLM mode selector (`auto` / `cloud` / `local`).
-  - `⚡ Async` button -- non-blocking analysis via async API.
+  - `вљЎ Async` button -- non-blocking analysis via async API.
   - Dataflow expander -- shows `dataflow_path` for Java/C.
 
 ### Tests
@@ -139,40 +153,40 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ### Fixed (review + dogfood P0)
 
-- **material_hash collisions** — context (filename + session_id) added to hash input (`ce3953d`)
-- **PII redaction before LLM** — 15 regex patterns, placeholders (`<EMAIL_REDACTED>`) before cloud send (`7b23c24`)
-- **LLM HTTP timeout** — 60s + tenacity retry with exponential backoff (`9063927`)
-- **API auth + rate limit** — X-API-Key + 10/min limiter + CORS + 127.0.0.1 fallback (`fbfb48f`)
-- **EMERGENCY-downgrade gate** — CRITICAL_RISK_PATTERNS (RCE, SQLi, path traversal, XXE, SSTI, LDAPi) (`48dddd0`)
-- **[AUDIT_TRAIL] dedup** — strip_llm_audit_blocks from LLM output (`2000501`)
-- **material_hash_full** — SHA-256 of original (before truncation) (`8ca7f4e`)
-- **material_complete** — deterministic `not truncated` (`9459a53`)
-- **risk_verdict** — separated from critique_verdict (`e500c80`)
-- **emergency path UnboundLocalError** — fixed (`e500c80`)
-- **748 material_hash places** — all 64-hex or LEGACY (`71af15f`, `0e68b05`, `08ce35d`)
+- **material_hash collisions** вЂ” context (filename + session_id) added to hash input (`ce3953d`)
+- **PII redaction before LLM** вЂ” 15 regex patterns, placeholders (`<EMAIL_REDACTED>`) before cloud send (`7b23c24`)
+- **LLM HTTP timeout** вЂ” 60s + tenacity retry with exponential backoff (`9063927`)
+- **API auth + rate limit** вЂ” X-API-Key + 10/min limiter + CORS + 127.0.0.1 fallback (`fbfb48f`)
+- **EMERGENCY-downgrade gate** вЂ” CRITICAL_RISK_PATTERNS (RCE, SQLi, path traversal, XXE, SSTI, LDAPi) (`48dddd0`)
+- **[AUDIT_TRAIL] dedup** вЂ” strip_llm_audit_blocks from LLM output (`2000501`)
+- **material_hash_full** вЂ” SHA-256 of original (before truncation) (`8ca7f4e`)
+- **material_complete** вЂ” deterministic `not truncated` (`9459a53`)
+- **risk_verdict** вЂ” separated from critique_verdict (`e500c80`)
+- **emergency path UnboundLocalError** вЂ” fixed (`e500c80`)
+- **748 material_hash places** вЂ” all 64-hex or LEGACY (`71af15f`, `0e68b05`, `08ce35d`)
 
 ### Added
 
-- **PROOF.md** — 13 evidence sections (`e6d3829`, `0e68b05`)
-- **FINDINGS.md** — dogfood findings, 5 P0 bugs (`a5b444f`)
-- **8 dogfood reports** — code, config, spec, data (`27aabb4`)
-- **STONESOUP CWE-129B** — SARD case study (`a48b228`)
-- **deployment/** — Dockerfile, docker-compose, systemd, .env.example (`003f9a8`)
-- **SECURITY.md** — threat model + controls + honest boundaries (`7929f1e`)
-- **docs/LIMITATIONS.md** — 10 honest boundaries (`ce7cf19`)
-- **docs/FAQ.md** — 10 common questions (`acba0af`)
-- **src/api/auth.py** — X-API-Key dependency
-- **src/api/rate_limit.py** — in-memory sliding window
-- **src/tools/redact.py** — pre-LLM redaction
-- **src/tools/patterns.py** — PII_PATTERNS + CRITICAL_RISK_PATTERNS
+- **PROOF.md** вЂ” 13 evidence sections (`e6d3829`, `0e68b05`)
+- **FINDINGS.md** вЂ” dogfood findings, 5 P0 bugs (`a5b444f`)
+- **8 dogfood reports** вЂ” code, config, spec, data (`27aabb4`)
+- **STONESOUP CWE-129B** вЂ” SARD case study (`a48b228`)
+- **deployment/** вЂ” Dockerfile, docker-compose, systemd, .env.example (`003f9a8`)
+- **SECURITY.md** вЂ” threat model + controls + honest boundaries (`7929f1e`)
+- **docs/LIMITATIONS.md** вЂ” 10 honest boundaries (`ce7cf19`)
+- **docs/FAQ.md** вЂ” 10 common questions (`acba0af`)
+- **src/api/auth.py** вЂ” X-API-Key dependency
+- **src/api/rate_limit.py** вЂ” in-memory sliding window
+- **src/tools/redact.py** вЂ” pre-LLM redaction
+- **src/tools/patterns.py** вЂ” PII_PATTERNS + CRITICAL_RISK_PATTERNS
 
 ### Changed
 
-- `compute_hash` — added `context` param
-- `run_audit` — added `force_emergency`, `context`, `redaction_map` params
-- `AnalyzeResponse` — added `audit`, `completeness`, `material_hash_full`, `truncated`, `original_size`
-- `run_pipeline` — redaction before Stage 0
-- `uvicorn.run` — dynamic host (127.0.0.1 if no API key)
+- `compute_hash` вЂ” added `context` param
+- `run_audit` вЂ” added `force_emergency`, `context`, `redaction_map` params
+- `AnalyzeResponse` вЂ” added `audit`, `completeness`, `material_hash_full`, `truncated`, `original_size`
+- `run_pipeline` вЂ” redaction before Stage 0
+- `uvicorn.run` вЂ” dynamic host (127.0.0.1 if no API key)
 
 ### Security
 
@@ -187,16 +201,16 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ### Added
 
-- **6-stage LLM pipeline** — Orchestrator, Scanner, Analyst, Researcher, Synthesizer, Transmitter
-- **Multi-material** — code (.py, .go, .js, .ts, .java, .rs), spec (.md), logs (.txt), config (.yaml, .json), data (.json)
-- **Audit trail** — SHA-256 material_hash, pii_detected, compliance_flags, critique_verdict
-- **EMERGENCY interrupt** — Stage 0 stops pipeline on critical risk
-- **FastAPI API** — /analyze, /analyze/batch, /history, /mode, /health
-- **Streamlit UI** — file upload, history, download markdown
+- **6-stage LLM pipeline** вЂ” Orchestrator, Scanner, Analyst, Researcher, Synthesizer, Transmitter
+- **Multi-material** вЂ” code (.py, .go, .js, .ts, .java, .rs), spec (.md), logs (.txt), config (.yaml, .json), data (.json)
+- **Audit trail** вЂ” SHA-256 material_hash, pii_detected, compliance_flags, critique_verdict
+- **EMERGENCY interrupt** вЂ” Stage 0 stops pipeline on critical risk
+- **FastAPI API** вЂ” /analyze, /analyze/batch, /history, /mode, /health
+- **Streamlit UI** вЂ” file upload, history, download markdown
 - **DeepSeek cloud** + **Ollama local** fallback
-- **41 tests** — PII, compliance, JSON, pipeline mock, e2e
-- **39 case studies** — FastAPI, Django, Flask, Express, Go stdlib, Log4Shell, OpenSSL, Redis, K8s, PostgreSQL, Juice Shop, DVGA, RailsGoat, DVWA, TerraGoat
-- **CI** — GitHub Actions, py3.11 + py3.12
+- **41 tests** вЂ” PII, compliance, JSON, pipeline mock, e2e
+- **39 case studies** вЂ” FastAPI, Django, Flask, Express, Go stdlib, Log4Shell, OpenSSL, Redis, K8s, PostgreSQL, Juice Shop, DVGA, RailsGoat, DVWA, TerraGoat
+- **CI** вЂ” GitHub Actions, py3.11 + py3.12
 
 ### Known limitations
 
