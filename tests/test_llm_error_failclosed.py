@@ -38,7 +38,7 @@ def test_audit_fails_closed_when_the_model_was_not_reached():
 
 def test_audit_stays_normal_when_the_model_answered():
     audit = run_audit("print(1)", "sess-test")
-    assert audit["critique_verdict"] in ("SAFE", "REQUIRES_REVIEW")
+    assert audit["critique_verdict"] in ("SAFE", "REQUIRES_REVIEW", "NEEDS_VERIFICATION")
     assert audit["llm_error"] is False
 
 

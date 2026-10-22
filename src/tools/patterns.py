@@ -628,3 +628,26 @@ def detect_exploitability(material: str) -> dict:
         "entry_points": entry_points,
         "blast_indicators": blast_indicators,
     }
+
+
+# === v7.2: CWE mapping for anti-patterns (see vishap system prompt v7.1) ===
+CWE_MAPPING = {
+    # identity / fencing
+    "handle_reset": "CWE-362",            # concurrent handle reuse
+    "bloom_lsm": "CWE-400",               # index does not cover data (DoS)
+    "extend_no_version": "CWE-367",       # TOCTOU: visibility without fencing
+    "nack_version_before_clock": "CWE-362",
+    "check_then_act": "CWE-367",
+    "put_overwrite": "CWE-362",
+    # parsing / interpretation
+    "parse_qs_vs_qsl": "CWE-88/CWE-20",   # HPP / interpretation conflict
+    # classic
+    "idor": "CWE-639",
+    "path_traversal": "CWE-22",
+    "xxe": "CWE-611",
+    "ssrf": "CWE-918",
+    "insecure_deserialization": "CWE-502",
+    "hardcoded_credentials": "CWE-798",
+    "missing_auth": "CWE-306",
+    "improper_cert_validation": "CWE-295",
+}

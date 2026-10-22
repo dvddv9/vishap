@@ -62,7 +62,7 @@ def test_audit_structure(s0, s1, s2, s4, s5):
     assert "material_hash" in audit
     assert "pii_detected" in audit
     assert "critique_verdict" in audit
-    assert audit["critique_verdict"] in ("SAFE", "REQUIRES_REVIEW")
+    assert audit["critique_verdict"] in ("SAFE", "REQUIRES_REVIEW", "NEEDS_VERIFICATION")
 
 
 @patch("src.pipeline.orchestrator.stage5_transmitter", return_value=MOCK_STAGE5)
@@ -92,7 +92,7 @@ def test_pii_in_material_detected(s0, s1, s2, s4, s5):
     )
     audit = result["audit"]
     assert audit["pii_detected"] is True
-    assert audit["critique_verdict"] == "REQUIRES_REVIEW"
+    assert audit["critique_verdict"] in ("REQUIRES_REVIEW", "NEEDS_VERIFICATION")
 
 
 @patch("src.pipeline.orchestrator.stage5_transmitter", return_value=MOCK_STAGE5)

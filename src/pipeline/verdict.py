@@ -100,3 +100,24 @@ def compute_risk_verdict(
         return "REQUIRES_REVIEW", "REQUIRES_REVIEW"
 
     return "SAFE", "SAFE"
+
+
+# === v7.2: #2 evidence.python_run -> critique_verdict ==================
+def compute_critique_verdict(context_thread: dict | None,
+                              pii: dict | None,
+                              compliance: list | None,
+                              cwe_ids: list | None) -> str:
+    """Return critique verdict with Python-evidence gating.
+
+    - no Python run -> NEEDS_VERIFICATION (honest: cannot assert)
+    - pii / compliance / cwe -> REQUIRES_REVIEW
+    - else -> SAFE
+    """
+    ct = context_thread or {}
+    evidence = ct.get("evidence") or {}
+    python_run = bool(evidence.get("python_run"))
+    if not python_run:
+        return "NEEDS_VERIFICATION"
+    if pii or compliance or cwe_ids:
+        return "REQUIRES_REVIEW"
+    return "SAFE"

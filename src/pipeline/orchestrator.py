@@ -9,7 +9,7 @@ import json
 import re
 import sys
 import time
-from datetime import datetime, UTC
+from datetime import datetime, UTC, timedelta
 from pathlib import Path
 
 from src.config import DATA_DIR, ENABLE_WEB_SEARCH
@@ -39,7 +39,10 @@ from src.tools.anomaly import enrich_anomaly  # P2-12
 from src.tools.patterns import CRITICAL_RISK_PATTERNS
 from src.tools.baseline import apply_baseline
 from src.tools.deps import build_import_graph, collect_context_files
-from src.pipeline.verdict import compute_risk_verdict  # v5.11.2: consolidated verdict
+from src.pipeline.verdict import (
+    compute_risk_verdict,  # v5.11.2: consolidated verdict
+    compute_critique_verdict,  # v7.2: #2 evidence.python_run -> critique
+)
 from src.version import __version__
 
 #: What `src.llm.client.chat()` returns when the harness cannot be reached.
@@ -377,6 +380,15 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         force_emergency=force_emergency,
         final_markdown=final_markdown,
     )
+    # v7.2: #2 evidence.python_run -> critique_verdict
+    # (do not override llm_error below)
+    if not force_emergency and not llm_error:
+        critique = compute_critique_verdict(
+            context_thread=None,
+            pii=pii,
+            compliance=compliance,
+            cwe_ids=cwe_ids,
+        )
     if llm_error:
         # Fail closed: an analysis the model never saw is not SAFE, it is
         # unavailable. Reporting SAFE here is how a broken harness produced a
@@ -433,6 +445,9 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         "web_search_credits": len(web_search_queries or []),
         "escalation_level": escalation_level,
     }
+    audit["report_date"] = datetime.now().isoformat()
+    audit["valid_until"] = (datetime.now() + timedelta(days=90)).isoformat()
+    audit["report_date_source"] = "system clock"
 
     audit_file = DATA_DIR / f"audit_{session_id}.json"
     audit_file.write_text(
