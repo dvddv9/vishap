@@ -22,3 +22,61 @@ python -m venv venv
 source venv/bin/activate
 
 pip install -r requirements.txt
+Copy .env.example to .env and fill in your keys. For local development without Stripe/Clerk, set VISHAP_DEV=true.
+
+Quick start
+
+Windows (one-click)
+
+Double-click start_all.ps1 (or the Vishap desktop shortcut). It starts the API on :8080, the UI on :3000, and (if needed) the DSH harness, then opens the browser.
+
+CLI
+
+```bash
+vishap analyze path/to/file.py
+```
+
+API
+
+```powershell
+python -m src.main
+# -> http://localhost:8080/docs
+
+curl -X POST http://localhost:8080/analyze `
+  -H "Content-Type: application/json" `
+  -d '{\"material\": \"def f(): pass\", \"filename\": \"x.py\"}'
+```
+
+UI
+
+```powershell
+cd ui-next
+npm install
+npm run dev
+# -> http://localhost:3000
+```
+
+Scroll to the LLM Provider panel and choose Custom, Harness, or DeepSeek.
+
+Async (Celery + Redis)
+
+```powershell
+celery -A src.api.celery_app worker --loglevel=info
+
+curl -X POST http://localhost:8080/analyze/async `
+  -H "Content-Type: application/json" `
+  -d '{\"material\": \"def f(): pass\", \"filename\": \"x.py\"}'
+# -> {\"job_id\": \"...\", \"status\": \"queued\"}
+
+curl http://localhost:8080/status/<job_id>
+curl http://localhost:8080/report/<job_id>
+```
+
+Next steps
+
+· Architecture
+· API Reference
+· CLI
+· Case Studies
+
+```
