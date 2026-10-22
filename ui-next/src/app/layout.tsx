@@ -24,7 +24,7 @@ export const metadata: Metadata = {
     "6-stage LLM pipeline with SAST/SCA, STRIDE threat model, audit trail, SARIF 2.1.0 and SCA reporting.",
 };
 
-export default function RootLayout({ children }: LayoutProps<"/">) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   const page = (
     <html
       lang="en"
