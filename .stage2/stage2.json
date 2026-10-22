@@ -1,0 +1,925 @@
+{
+  "meta": {
+    "stage": "stage2_analyst",
+    "version": "V5.8",
+    "session_id": "sess-2026-10-22-112620",
+    "subst_count": 0,
+    "material": {
+      "path": ".stage1/material.py",
+      "language": "python",
+      "lines": 59,
+      "type": "single file, demonstration code"
+    },
+    "tool_commands": [
+      "python src/tools/analyze.py --mode security --input .stage1/material.py",
+      "python src/tools/analyze.py --mode contracts --input .stage1/material.py",
+      "python src/tools/analyze.py --mode concurrency --input .stage1/material.py",
+      "python src/tools/analyze.py --mode static --input .stage1/material.py",
+      "python src/tools/analyze.py --mode metrics --input .stage1/material.py",
+      "python src/tools/analyze.py --mode deps --input requirements.txt",
+      "python src/tools/analyze.py --mode tests --input .stage1"
+    ],
+    "note": "Путь tools/analyze.py из промпта в этом checkout соответствует src/tools/analyze.py; сам анализатор маркирован V5.7, режимы v6.1 (concurrency/contracts)."
+  },
+  "risk_nodes": [
+    {
+      "id": "RN-1",
+      "name": "Неявное допущение",
+      "priority": "критично",
+      "note": "Код предполагает, что base_dir и его содержимое доверенны, приватны и не подменяемы: нет проверки ownership, ACL, realpath и symlink. При нарушении допущения цепочка «подмена или symlink → чтение → exec» даёт RCE с правами процесса."
+    },
+    {
+      "id": "RN-2",
+      "name": "Слабое обобщение",
+      "priority": "важно",
+      "note": "basename, названный защитой от traversal, не покрывает symlink, `..` и TOCTOU, поэтому вывод «SecureFileManager безопасен» не обобщается на реальные конфиги. Комментарий «кажется надёжной» сам фиксирует разрыв между заявлением и реализацией."
+    },
+    {
+      "id": "RN-3",
+      "name": "Конкурирующая реализация",
+      "priority": "важно",
+      "note": "Два способа читать файл (кэш и поток против прямого open) и два способа интерпретировать конфиг (exec против обычного текста) сосуществуют без явного выбора. Это маскирует, какой путь реально сработал, и удорожает поддержку."
+    },
+    {
+      "id": "RN-4",
+      "name": "Сдвиг тезиса",
+      "priority": "важно",
+      "note": "Заявленная задача — безопасная работа с файлами, фактическая — демонстрация уязвимостей: комментарии описывают TOCTOU и masked exec как учебные, а код исполняет их в рабочем пути. Тезис «Secure» подменён тезисом «учебный пример», но API и имя остались продуктовыми."
+    },
+    {
+      "id": "RN-5",
+      "name": "Внутреннее противоречие",
+      "priority": "важно",
+      "note": "Комментарий «Проверка прав» относится к os.path.exists, который не проверяет права; комментарий об «оптимизации» сопровождает путь с 100 мс сна и созданием потока на каждый промах. Кэш без TTL противоречит обещанию актуального конфига."
+    },
+    {
+      "id": "RN-6",
+      "name": "Стратегическое избегание",
+      "priority": "важно",
+      "note": "Вместо разбора конфига и изоляции вычислений выбран exec с точным строковым триггером; вместо атомарного открытия — exists плюс sleep. Оба решения обходят сложную часть задачи (парсинг и конкурентный доступ), перекладывая её на эксплуатацию."
+    },
+    {
+      "id": "RN-7",
+      "name": "Производительность",
+      "priority": "важно",
+      "note": "На каждый промах кэша создаётся поток, который сразу join-ится, плюс фиксированные 100 мс; выигрыш возможен только на повторных попаданиях. Кэш не ограничен и не имеет eviction, поэтому память растёт с числом различных путей."
+    },
+    {
+      "id": "RN-8",
+      "name": "Надёжность",
+      "priority": "критично",
+      "note": "Ошибки open/read проглатываются через except Exception: pass, отсутствующий файл возвращается строкой и в process_config превращается в успех. Сбой чтения неотличим от пустого файла, а exec может уронить процесс необработанным SyntaxError."
+    },
+    {
+      "id": "RN-9",
+      "name": "Масштабируемость",
+      "priority": "важно",
+      "note": "Глобальный кэш и поток на вызов не масштабируются ни по числу путей (нет eviction), ни по числу конкурентных вызывающих (нет пула и single-flight). Один экземпляр на процесс разделяет состояние между всеми арендаторами."
+    },
+    {
+      "id": "RN-10",
+      "name": "Конкурентность",
+      "priority": "критично",
+      "note": "_file_cache — module-global без блокировки: check-then-act допускает дубли загрузок и last-write-wins, а TOCTOU-окно расширено до 100 мс. join() без таймаута превращает зависший open (FIFO, сетевая ФС) в вечное блокирование вызывающего."
+    },
+    {
+      "id": "RN-11",
+      "name": "Ломающие изменения",
+      "priority": "важно",
+      "note": "Корректные фиксы ломают контракт: sentinel-строка → исключения, запрет symlink, удаление exec, TTL-кэш и отказ от import side effects. Тестов и инвентаря потребителей нет, поэтому риск несовместимости нельзя оценить; COVE Q4 повысил приоритет с опционально до важно."
+    }
+  ],
+  "plan_b": [
+    "SEC-1: убрать exec; декларативный парсер (json/toml) с allowlist ключей; если legacy-конфигу нужен код — отдельный sandbox-процесс без ФС и сети",
+    "SEC-2: один open() с O_NOFOLLOW и fstat вместо предварительного exists; читать через dir_fd, без sleep между проверкой и использованием",
+    "SEC-3: realpath-containment с проверкой commonpath; если symlink-конфиги легитимны — разрешать только absolute realpath из allowlist",
+    "SEC-4: не использовать предсказуемый /tmp; mkdtemp с mode 0700 и проверкой owner, O_EXCL; убрать обработку конфига при импорте",
+    "SEC-5: typed exceptions вместо sentinel; process_config обязан различать missing, empty и error и не возвращать успех при сбое",
+    "SEC-6: логировать и пробрасывать ошибку чтения; запретить fail-open на пустом результате",
+    "SEC-7: аутентифицированный principal, отдельный base_dir на арендатора, проверка ACL и ownership перед чтением",
+    "SEC-8: bounded executor плюс join timeout, single-flight на путь, лимит кэша и rate limit на вызывающего",
+    "SEC-9: читать потоково с явным лимитом и ошибкой при превышении; TTL и инвалидация вместо вечного кэша",
+    "SEC-10: валидировать filename (тип, NUL, длина, NFC), отклонять `..`, absolute и пустые имена",
+    "SEC-11: append-only audit log (principal, path hash, realpath, cache hit/miss, exec attempt) плюс метрики",
+    "SEC-12: зафиксировать контракт возврата (bytes/text с явной ошибкой) и требовать экранирование под конкретный sink",
+    "RN-8: fail-closed по умолчанию и явные исключения на всех границах",
+    "RN-10: Lock/single-flight для кэша и обязательный timeout на join и open"
+  ],
+  "security": {
+    "summary": "12 находок: 4 критично (exec-RCE, TOCTOU, symlink-escape, предсказуемый /tmp с обработкой при импорте), 7 важно, 1 опционально. Критическая цепочка: запись в base_dir или /tmp → подмена или symlink → чтение → exec с правами процесса.",
+    "findings": [
+      {
+        "id": "SEC-1",
+        "title": "Произвольное выполнение кода из содержимого конфига (exec)",
+        "issue": "При точном вхождении подстроки debug_mode=True остаток файла передаётся в exec() в пространстве имён process_config: доступны builtins, модульные глобалы (manager, _file_cache) и права процесса. Это не имитация eval, а реальный exec; SyntaxError или NameError из payload не перехватываются. [FROM_KNOWLEDGE: OWASP A03:2021 Injection]",
+        "priority": "критично",
+        "cwe": "CWE-94",
+        "location": "process_config(), строки 51–53"
+      },
+      {
+        "id": "SEC-2",
+        "title": "TOCTOU между exists() и open()",
+        "issue": "Проверка os.path.exists (строка 22) отделена от open (строка 33) минимум 100 мс (time.sleep(0.1)) и запуском потока. За это окно путь можно заменить symlink или другим файлом; exists не даёт гарантии, что open откроет тот же объект. [FROM_KNOWLEDGE: CWE-367 Time-of-check Time-of-use]",
+        "priority": "критично",
+        "cwe": "CWE-367",
+        "location": "read_file(), строки 22–34"
+      },
+      {
+        "id": "SEC-3",
+        "title": "Symlink-escape: basename не удерживает путь внутри base_dir",
+        "issue": "basename отсекает каталоги для обычных имён, но не разрешает symlink и не проверяет realpath/commonpath; ссылка внутри base_dir читает цель за его пределами. Дополнительно basename('..') возвращает '..', и join(base_dir, '..') выходит из каталога. [FROM_KNOWLEDGE: CWE-59 Improper Link Resolution Before File Access]",
+        "priority": "критично",
+        "cwe": "CWE-59",
+        "location": "_get_safe_path(), строки 13–16; open(), строка 33"
+      },
+      {
+        "id": "SEC-4",
+        "title": "Предсказуемый /tmp-каталог и обработка конфига при импорте",
+        "issue": "os.makedirs('/tmp/vishap_test') создаёт каталог с дефолтным umask в общем /tmp, а строки 58–59 при импорте читают settings.cfg и потенциально исполняют его. Локальный пользователь может заранее создать каталог и файл: код выполнится в чужом процессе без единого вызова API. [FROM_KNOWLEDGE: CWE-377 Insecure Temporary File]",
+        "priority": "критично",
+        "cwe": "CWE-377",
+        "location": "строки 11, 58–59"
+      },
+      {
+        "id": "SEC-5",
+        "title": "Fail-open: отсутствующий файл обрабатывается как успех",
+        "issue": "read_file возвращает строку «Ошибка: файл не найден», process_config проверяет только truthiness и возвращает «Конфиг обработан». Missing и empty неразличимы, сервис продолжает работу с дефолтами, считая конфиг применённым. [FROM_KNOWLEDGE: CWE-391 Unchecked Error Condition]",
+        "priority": "важно",
+        "cwe": "CWE-391",
+        "location": "read_file(), строка 23; process_config(), строки 45–47"
+      },
+      {
+        "id": "SEC-6",
+        "title": "Проглатывание ошибок чтения (except Exception: pass)",
+        "issue": "Любой сбой open/read/декодирования превращается в пустой bytes, затем в пустую строку и «Пустой конфиг». Ошибка прав, I/O и повреждения файла неотличимы от пустого файла; диагностика и алертинг невозможны. [FROM_KNOWLEDGE: CWE-390 Detection of Error Condition Without Action]",
+        "priority": "важно",
+        "cwe": "CWE-390",
+        "location": "_load(), строки 32–36; read_file(), строка 42"
+      },
+      {
+        "id": "SEC-7",
+        "title": "Нет авторизации и изоляции арендаторов",
+        "issue": "API не принимает principal, не проверяет ACL и ownership; любой вызывающий читает любой basename в общем base_dir. Один экземпляр и один module-global кэш обслуживают всех, поэтому граница «кто читает» не выражена в коде. [FROM_KNOWLEDGE: CWE-862 Missing Authorization]",
+        "priority": "важно",
+        "cwe": "CWE-862",
+        "location": "SecureFileManager, строки 8–19"
+      },
+      {
+        "id": "SEC-8",
+        "title": "Поток на каждый промах и join() без таймаута",
+        "issue": "На каждый cache miss создаётся новый OS-поток, который сразу join-ится; таймаута нет, а open на FIFO или сетевой ФС может блокироваться неограниченно. Поток вызовов с промахами истощает пул потоков и память. [FROM_KNOWLEDGE: CWE-400 Uncontrolled Resource Consumption]",
+        "priority": "важно",
+        "cwe": "CWE-400",
+        "location": "read_file(), строки 26–40"
+      },
+      {
+        "id": "SEC-9",
+        "title": "Усечение до 1024 байт и вечный кэш без инвалидации",
+        "issue": "Читается только первый килобайт, хотя комментарий обещает «если файл маленький»; результат кэшируется бессрочно и без TTL. Конфиг больше 1024 байт молча обрезается, изменения после первого чтения не видны — устаревшие и частичные настройки живут до рестарта. [FROM_KNOWLEDGE: CWE-1284 Improper Validation of Specified Quantity in Input]",
+        "priority": "важно",
+        "cwe": "CWE-1284",
+        "location": "read_file(), строки 26–34, 42"
+      },
+      {
+        "id": "SEC-10",
+        "title": "filename не валидируется по типу, NUL и Unicode",
+        "issue": "Нет проверки типа и нормализации: basename(None) даёт TypeError, NUL в имени — ValueError в open, разные Unicode-нормализации и платформенные разделители адресуют разные объекты. Падения не перехвачены. [FROM_KNOWLEDGE: CWE-20 Improper Input Validation]",
+        "priority": "опционально",
+        "cwe": "CWE-20",
+        "location": "_get_safe_path(), строки 13–16"
+      },
+      {
+        "id": "SEC-11",
+        "title": "Нет audit log для чтений и exec",
+        "issue": "Не фиксируется, кто, когда и какой файл читал, был ли cache hit/miss и был ли вызван exec; нет ни logging, ни метрик. Инцидент с RCE или утечкой не атрибутируется и не восстанавливается. [FROM_KNOWLEDGE: CWE-778 Insufficient Logging]",
+        "priority": "важно",
+        "cwe": "CWE-778",
+        "location": "process_config(), строки 44–55; read_file(), строки 18–42"
+      },
+      {
+        "id": "SEC-12",
+        "title": "Возвращаемый контент не имеет контракта по sink",
+        "issue": "read_file отдаёт произвольный текст, process_config уже направляет его в exec, а внешний потребитель может направить в shell, SQL или лог. В 59 строках sink не виден, поэтому это граница вне материала; VERIFY, приоритет поднят с опционально до важно.",
+        "priority": "важно",
+        "cwe": "CWE-116",
+        "location": "read_file() → process_config(), строки 42–55"
+      }
+    ]
+  },
+  "secrets": {
+    "hardcoded": [],
+    "tool_result": {
+      "possible_hardcoded_secrets": [],
+      "verdict": "no hardcoded secrets detected by regex"
+    },
+    "exposure_surface": [
+      "Содержимое первых 1024 байт любого файла под base_dir попадает в module-global _file_cache и живёт до рестарта — включая возможные токены и пароли конфигов.",
+      "exec получает доступ к builtins, globals модуля (manager, _file_cache) и окружению процесса, поэтому секреты среды достижимы из payload.",
+      "Логов и ошибок нет, факт чтения секрета не фиксируется; decode(errors='ignore') может молча исказить значение.",
+      "Предсказуемый /tmp/vishap_test при umask 022 обычно создаётся как 0755 и виден соседним локальным пользователям."
+    ],
+    "handling": "Секретов в исходнике нет; риск — не хранение, а раскрытие содержимого файлов и окружения через кэш и exec. После фикса: не кэшировать секреты, редактировать логи, ограничить каталог режимом 0700, ротировать всё, что могло быть прочитано.",
+    "priority": "важно"
+  },
+  "concurrency": {
+    "shared_state": [
+      "_file_cache (module-level dict): ключи — строки путей, значения — до 1024 байт; пишет worker-поток _load, читает вызывающий поток; блокировки нет.",
+      "self.base_dir: пишется один раз в __init__, читается в _get_safe_path; мутаций не наблюдается, но относительный путь зависит от CWD."
+    ],
+    "locks": [],
+    "races": [
+      {
+        "id": "CR-1",
+        "race": "check-then-act по кэшу: два вызывающих одновременно видят path not in _file_cache и запускают два _load.",
+        "impact": "Дублирование I/O и last-write-wins; при изменении файла между загрузками результат зависит от планировщика.",
+        "fix": "single-flight под Lock или future на путь."
+      },
+      {
+        "id": "CR-2",
+        "race": "TOCTOU: exists() на строке 22 и open() на строке 33 разделены sleep(0.1) и стартом потока.",
+        "impact": "Подмена файла или symlink в окне читает чужой объект; в сочетании с exec — доставка RCE.",
+        "fix": "Один open с O_NOFOLLOW плюс fstat, проверка realpath."
+      },
+      {
+        "id": "CR-3",
+        "race": "Чтение _file_cache.get после join может вернуть значение, записанное чужим loader'ом.",
+        "impact": "Вызывающий получает не тот результат, который инициировал; ошибка атрибуции и устаревшие данные.",
+        "fix": "Возвращать результат своего future, а не общий dict."
+      },
+      {
+        "id": "CR-4",
+        "race": "Два менеджера с одним base_dir делят module-global кэш и перетирают записи друг друга.",
+        "impact": "Cross-tenant утечка или устаревший конфиг после смены файла.",
+        "fix": "Кэш на экземпляр, ключ с tenant и TTL."
+      }
+    ],
+    "blocking": "join() без timeout; open() на FIFO или сетевой ФС; sleep(0.1) на каждом промахе; создание потока на каждый вызов.",
+    "idempotency": "read_file нестабилен относительно ФС: первый успешный результат кэшируется навсегда, удаление файла переключает на строку ошибки. process_config не идемпотентен: каждый вызов с маркером повторяет exec.",
+    "tool_note": "analyze.py --mode concurrency вернул locks=[] и shared_state=[]: AST ищет только оператор global, имена Lock/RLock/Semaphore/Condition/Event и await. Module-level dict, check-then-act и TOCTOU не детектируются — это ограничение инструмента, а не отсутствие гонок.",
+    "priority": "критично"
+  },
+  "threat_model": {
+    "components": [
+      {"id": "C1", "name": "Вызывающий код (любой импортёр или сервис)", "zone": "untrusted caller"},
+      {"id": "C2", "name": "Публичный API SecureFileManager", "zone": "process"},
+      {"id": "C3", "name": "Нормализатор пути _get_safe_path", "zone": "process"},
+      {"id": "C4", "name": "Глобальный кэш _file_cache", "zone": "process memory"},
+      {"id": "C5", "name": "Worker-поток _load", "zone": "process"},
+      {"id": "C6", "name": "Файловая система под base_dir", "zone": "filesystem"},
+      {"id": "C7", "name": "exec-приёмник в process_config", "zone": "process code execution"},
+      {"id": "C8", "name": "Импорт модуля (строки 58–59)", "zone": "module load"}
+    ],
+    "trust_boundaries": [
+      {"id": "TB-1", "name": "Вызывающий → публичный API", "description": "filename и config_name попадают в процесс без аутентификации и авторизации."},
+      {"id": "TB-2", "name": "Файловая система → процесс", "description": "Содержимое файлов, symlink, hardlink и специальные файлы пересекают границу в open() и exec()."},
+      {"id": "TB-3", "name": "Импорт модуля → среда и глобальное состояние", "description": "Импорт создаёт каталог, читает /tmp-конфиг и может исполнить код до любого вызова API."},
+      {"id": "TB-4", "name": "Worker-поток → кэш и вызывающий", "description": "Поток _load пишет module-global dict, который читают все вызывающие; идентичность записи не проверяется."}
+    ],
+    "threats": [
+      {
+        "id": "TH-01",
+        "component": "C1 → C2",
+        "boundary": "TB-1",
+        "stride": "S",
+        "threat": "Вызывающий не аутентифицируется: API не принимает principal, поэтому один арендатор действует от имени другого и читает его файлы в общем base_dir.",
+        "priority": "важно",
+        "mitigation": "Принимать аутентифицированный principal, скоупить base_dir на арендатора, проверять ACL перед чтением."
+      },
+      {
+        "id": "TH-02",
+        "component": "C3",
+        "boundary": "TB-1",
+        "stride": "T",
+        "threat": "filename не валидируется: `..`, NUL, None, разные Unicode-нормализации и платформенные разделители адресуют не тот объект или роняют процесс.",
+        "priority": "важно",
+        "mitigation": "Path-тип, allowlist-регекс, NFC, запрет NUL и control-символов, проверка basename == normalized."
+      },
+      {
+        "id": "TH-03",
+        "component": "C2",
+        "boundary": "TB-1",
+        "stride": "R",
+        "threat": "Нет журнала: кто, когда и какой файл читал, был ли cache hit и был ли exec — действие нельзя атрибутировать.",
+        "priority": "важно",
+        "mitigation": "Структурный append-only audit log: principal, path, realpath, hash, решение."
+      },
+      {
+        "id": "TH-04",
+        "component": "C2",
+        "boundary": "TB-1",
+        "stride": "I",
+        "threat": "Разные ответы «файл не найден», «Пустой конфиг» и «Конфиг обработан» дают оракул существования и размера чужих файлов.",
+        "priority": "опционально",
+        "mitigation": "Единый контракт ошибок, не раскрывать существование, per-tenant namespace."
+      },
+      {
+        "id": "TH-05",
+        "component": "C2 → C5",
+        "boundary": "TB-1",
+        "stride": "D",
+        "threat": "Поток вызовов с промахами кэша создаёт поток на каждый вызов и 100 мс блокировки; неограниченный кэш и очередь потоков истощают процесс.",
+        "priority": "важно",
+        "mitigation": "Bounded executor, лимит кэша, rate limit на вызывающего, join timeout."
+      },
+      {
+        "id": "TH-06",
+        "component": "C2 → C7",
+        "boundary": "TB-1",
+        "stride": "E",
+        "threat": "Вызывающий, влияющий на содержимое конфига, повышает привилегии до процесса: exec выполняется с правами сервисного аккаунта.",
+        "priority": "критично",
+        "mitigation": "Убрать exec, декларативный парсер, least privilege, sandbox/seccomp."
+      },
+      {
+        "id": "TH-07",
+        "component": "C6 → C2",
+        "boundary": "TB-2",
+        "stride": "S",
+        "threat": "Symlink подменяет идентичность файла: имя внутри base_dir указывает на чужой файл, а exists() этого не различает.",
+        "priority": "критично",
+        "mitigation": "O_NOFOLLOW, fstat и сравнение inode/dev, realpath containment."
+      },
+      {
+        "id": "TH-08",
+        "component": "C6 → C5",
+        "boundary": "TB-2",
+        "stride": "T",
+        "threat": "Подмена файла между exists() и open() (окно не менее 100 мс) меняет объект чтения и доставляемое содержимое.",
+        "priority": "критично",
+        "mitigation": "Один open без предварительного exists, чтение из уже открытого fd, без sleep."
+      },
+      {
+        "id": "TH-09",
+        "component": "C6 → C2",
+        "boundary": "TB-2",
+        "stride": "R",
+        "threat": "Не фиксируются realpath и inode прочитанного файла, поэтому нельзя доказать, что именно прочитано.",
+        "priority": "важно",
+        "mitigation": "Логировать realpath, fstat-идентификатор и hash содержимого."
+      },
+      {
+        "id": "TH-10",
+        "component": "C6 → C4",
+        "boundary": "TB-2",
+        "stride": "I",
+        "threat": "Symlink или `..` выводят чтение за base_dir: /etc/passwd, ключи и чужие конфиги попадают в кэш и к вызывающему.",
+        "priority": "критично",
+        "mitigation": "realpath containment с commonpath, allowlist каталогов, отказ при выходе за корень."
+      },
+      {
+        "id": "TH-11",
+        "component": "C6 → C5",
+        "boundary": "TB-2",
+        "stride": "D",
+        "threat": "FIFO или специальный файл в base_dir блокирует open(), а join() без таймаута — вызывающий поток навсегда.",
+        "priority": "важно",
+        "mitigation": "Таймаут на join и open, проверка S_ISREG, отказ от специальных файлов."
+      },
+      {
+        "id": "TH-12",
+        "component": "C6 → C7",
+        "boundary": "TB-2",
+        "stride": "E",
+        "threat": "Содержимое файла с debug_mode=True исполняется как код процесса — файл становится вектором выполнения.",
+        "priority": "критично",
+        "mitigation": "Удалить exec, парсить данные, изолировать любые вычисления в sandbox."
+      },
+      {
+        "id": "TH-13",
+        "component": "C8 → C2",
+        "boundary": "TB-3",
+        "stride": "S",
+        "threat": "Импорт выглядит безобидным, но создаёт каталог и обрабатывает конфиг от имени импортёра — побочный эффект присваивает себе доверие импорта.",
+        "priority": "важно",
+        "mitigation": "Убрать side effects, требовать явный init(), добавить main guard."
+      },
+      {
+        "id": "TH-14",
+        "component": "C8 → C6",
+        "boundary": "TB-3",
+        "stride": "T",
+        "threat": "Предсказуемый /tmp/vishap_test/settings.cfg можно создать до первого импорта; импорт прочитает и исполнит его.",
+        "priority": "критично",
+        "mitigation": "Приватный каталог 0700 с проверкой owner, уникальное имя, запрет обработки до явной инициализации."
+      },
+      {
+        "id": "TH-15",
+        "component": "C8 → C2",
+        "boundary": "TB-3",
+        "stride": "R",
+        "threat": "Действия на импорте (mkdir, чтение, exec) не логируются, автор изменений не устанавливается.",
+        "priority": "важно",
+        "mitigation": "Audit-события инициализации и импорта с идентификатором процесса и файла."
+      },
+      {
+        "id": "TH-16",
+        "component": "C8 → C6",
+        "boundary": "TB-3",
+        "stride": "I",
+        "threat": "Каталог создаётся с дефолтным umask (обычно 0755) в общем /tmp; имена и содержимое видны локальным пользователям.",
+        "priority": "важно",
+        "mitigation": "mode 0700, проверка прав после mkdir, приватная директория вне /tmp."
+      },
+      {
+        "id": "TH-17",
+        "component": "C8",
+        "boundary": "TB-3",
+        "stride": "D",
+        "threat": "Импорт блокируется на 100 мс и на open(); при недоступной ФС любой импорт зависает — отказ на старте.",
+        "priority": "опционально",
+        "mitigation": "Убрать импортную обработку, таймауты и ленивую инициализацию."
+      },
+      {
+        "id": "TH-18",
+        "component": "C8 → C7",
+        "boundary": "TB-3",
+        "stride": "E",
+        "threat": "Локальный пользователь, заранее создавший каталог и файл, получает выполнение кода в процессе, импортировавшем модуль.",
+        "priority": "критично",
+        "mitigation": "Не доверять /tmp, проверять owner каталога, убрать exec и import-time processing."
+      },
+      {
+        "id": "TH-19",
+        "component": "C5 → C4",
+        "boundary": "TB-4",
+        "stride": "S",
+        "threat": "Кэш не привязан к вызывающему и экземпляру: запись, сделанная одним путём, выдаётся другому как своя.",
+        "priority": "важно",
+        "mitigation": "Кэш на экземпляр, ключ включает tenant и base_dir."
+      },
+      {
+        "id": "TH-20",
+        "component": "C5 → C4",
+        "boundary": "TB-4",
+        "stride": "T",
+        "threat": "Две конкурентные загрузки пишут один ключ, побеждает последняя; содержимое зависит от планировщика.",
+        "priority": "важно",
+        "mitigation": "Single-flight и атомарная запись под Lock."
+      },
+      {
+        "id": "TH-21",
+        "component": "C5 → C2",
+        "boundary": "TB-4",
+        "stride": "R",
+        "threat": "Не сохраняется, какой loader победил и был ли cache hit; инцидент не восстанавливается по журналу.",
+        "priority": "опционально",
+        "mitigation": "Логировать hit/miss, id загрузки и результат."
+      },
+      {
+        "id": "TH-22",
+        "component": "C4 → C1",
+        "boundary": "TB-4",
+        "stride": "I",
+        "threat": "Module-global кэш доступен любому коду процесса; содержимое чужих файлов переживает вызов и удаление файла.",
+        "priority": "важно",
+        "mitigation": "Приватный кэш, TTL, очистка при смене конфигурации."
+      },
+      {
+        "id": "TH-23",
+        "component": "C5 → C4",
+        "boundary": "TB-4",
+        "stride": "D",
+        "threat": "Число потоков и записей не ограничено; медленный loader удерживает join и накапливает потоки.",
+        "priority": "важно",
+        "mitigation": "Пул ограниченного размера, таймауты, лимит записей кэша."
+      },
+      {
+        "id": "TH-24",
+        "component": "C7 → C4",
+        "boundary": "TB-4",
+        "stride": "E",
+        "threat": "Payload через exec может писать в _file_cache и подменять содержимое, которое получают доверенные вызывающие.",
+        "priority": "критично",
+        "mitigation": "Убрать exec, сделать кэш приватным и неизменяемым из контента."
+      }
+    ],
+    "summary": {
+      "total": 24,
+      "critical": 8,
+      "important": 13,
+      "optional": 3
+    },
+    "top_3": [
+      "TH-12 и TH-14: исполнение содержимого файла через exec при обработке и при импорте — RCE без единого вызова API.",
+      "TH-08, TH-07 и TH-10: TOCTOU и symlink обходят base_dir, читают произвольные файлы и в сочетании с exec образуют цепочку до RCE.",
+      "TH-06, TH-18 и TH-24: повышение привилегий до процесса и персистентность подмены через общий кэш."
+    ]
+  },
+  "silence_layers": {
+    "input_silence": {
+      "what": "Нет ни одной цифры нагрузки: RPS и число вызовов, количество файлов и арендаторов, размер конфигов, число процессов и потоков, доля промахов кэша.",
+      "where": "Материал целиком: нет docstring, README, бенчмарка и конфигурации; stage0 flags фиксируют отсутствие client_role и cost budget.",
+      "impact": "Нельзя обосновать размер кэша и пула, оценить DoS-эффект и выбрать SLO; приоритеты опираются на код, а не на эксплуатационный контекст."
+    },
+    "assumption_silence": {
+      "assumption": "base_dir приватный и недоступен на запись атакующему; конфиг доверенный, меньше 1024 байт и в UTF-8; вызовы однопоточные; CWD не меняется; symlink отсутствуют.",
+      "why": "Ни одно условие не проверяется кодом, тестами или документацией; имя Secure и комментарии выдают желаемое за проверенное."
+    },
+    "consequence_silence": {
+      "who": "Сервисный аккаунт и его данные; соседние арендаторы при общем base_dir; потребители конфига, получающие устаревшие или пустые значения.",
+      "what": "RCE при импорте или обработке конфига, раскрытие секретов из первых 1 КБ, fail-open конфигурация, зависание на FIFO, устаревший контент после ротации.",
+      "irreversible": "Побочные эффекты exec (эксфильтрация, персистентность, использование credentials) не откатываются revert'ом кода; раскрытый секрет нельзя закрыть обратно; кэш живёт до рестарта процесса."
+    }
+  },
+  "intersection_risks": [
+    {
+      "layers": ["TOCTOU (SEC-2)", "exec (SEC-1)"],
+      "intersection": "Гонка перестаёт быть только чтением: подменённый файл выбирает содержимое, которое сразу уходит в exec.",
+      "risk": "Атакующий с правом записи в base_dir превращает TOCTOU в доставку RCE, а не в утечку 1 КБ."
+    },
+    {
+      "layers": ["symlink (SEC-3)", "глобальный кэш (SEC-9)"],
+      "intersection": "Кэш запоминает содержимое цели symlink под доверенным именем и реплеит его после удаления ссылки.",
+      "risk": "Однократная подмена становится persist-эффектом до рестарта; повторная эксплуатация не нужна."
+    },
+    {
+      "layers": ["предсказуемый /tmp (SEC-4)", "import side effect", "exec (SEC-1)"],
+      "intersection": "Каталог и конфиг создаются до первого импорта, а импорт сам читает и исполняет их без вызова API.",
+      "risk": "Zero-interaction RCE: достаточно локальной записи в /tmp, жертва запускает импорт."
+    },
+    {
+      "layers": ["thread-per-miss (SEC-8)", "join без таймаута", "FIFO"],
+      "intersection": "Каждый промах создаёт поток, который блокируется в open, а вызывающий — в join.",
+      "risk": "Локальный DoS: один специальный файл в base_dir останавливает всех вызывающих и копит потоки."
+    },
+    {
+      "layers": ["basename (SEC-3)", "относительный base_dir", "CWD"],
+      "intersection": "Относительный base_dir и сырой путь как ключ кэша: после chdir тот же ключ указывает на другой файл, но кэш отдаёт старое содержимое.",
+      "risk": "Кросс-арендная выдача чужого конфига без единой ошибки и без логов."
+    },
+    {
+      "layers": ["exec (SEC-1)", "отсутствие audit (SEC-11)"],
+      "intersection": "Выполнение кода не оставляет следа: нет ни записи о чтении, ни записи о payload, ни метрики.",
+      "risk": "Пост-эксплуатационная невидимость: инцидент обнаруживается только по внешним признакам, форензика невозможна."
+    },
+    {
+      "layers": ["вечный кэш (SEC-9)", "ротация конфига"],
+      "intersection": "Изменённый или отозванный security-флаг не применяется, пока жив процесс.",
+      "risk": "Отозванное право или отключённый debug остаются активными; изменения конфига не влияют на поведение."
+    },
+    {
+      "layers": ["sentinel-ошибка (SEC-5)", "импорт (SEC-4)"],
+      "intersection": "Отсутствующий конфиг при импорте даёт «Конфиг обработан», и сервис стартует с дефолтами, считая настройки применёнными.",
+      "risk": "Fail-open на старте: неверная конфигурация без единого алерта, последствия зависят от дефолтов."
+    }
+  ],
+  "contracts": {
+    "idempotency": {
+      "present": false,
+      "priority": "критично",
+      "evidence": "analyze.py --mode contracts: idempotency=false; process_config исполняет контент при каждом вызове, read_file кэширует первый результат навсегда.",
+      "note": "Повторный вызов — это повторный exec, а не безопасный retry."
+    },
+    "retry": {
+      "present": false,
+      "priority": "опционально",
+      "evidence": "retry=false; сетевых вызовов в материале нет.",
+      "note": "Внутренний retry не нужен; retry вызывающего опасен, пока операция неидемпотентна."
+    },
+    "timeout": {
+      "present": false,
+      "priority": "критично",
+      "evidence": "timeout=false; join() без аргумента, open() без таймаута, sleep(0.1) фиксирован.",
+      "note": "FIFO или сетевая ФС вешает вызывающий поток навсегда — это отказ, а не деградация."
+    },
+    "circuit_breaker": {
+      "present": false,
+      "priority": "опционально",
+      "evidence": "Нет удалённой зависимости, нечего размыкать.",
+      "note": "Для in-process библиотеки неприменим; станет обязателен, если чтение вынесут в сервис."
+    },
+    "service_class": "single-file helper, не платёжный сервис",
+    "rule_applied": "Для платёжных и критичных сервисов отсутствие любого контракта критично; здесь timeout и idempotency критичны из-за exec и блокирующего join, retry и circuit breaker — опционально."
+  },
+  "breaking_changes": [
+    {
+      "id": "BC-1",
+      "change": "Удаление exec и переход на декларативный парсер",
+      "breaks": "Конфиги с debug_mode=True и кодом после маркера перестанут исполняться; их поведение изменится.",
+      "migration": "Мигрировать ключи в json/toml, legacy-вычисления вынести в sandbox, выпустить отчёт о различиях.",
+      "priority": "критично"
+    },
+    {
+      "id": "BC-2",
+      "change": "Исключения вместо sentinel-строки",
+      "breaks": "Вызывающие, сравнивающие результат с «Ошибка: файл не найден» или проверяющие truthiness, изменят поведение.",
+      "migration": "Deprecation shim и переходный период с предупреждением.",
+      "priority": "важно"
+    },
+    {
+      "id": "BC-3",
+      "change": "realpath containment и запрет symlink",
+      "breaks": "Легитимные конфиги-симлинки перестанут читаться.",
+      "migration": "Allowlist absolute realpath для разрешённых ссылок.",
+      "priority": "важно"
+    },
+    {
+      "id": "BC-4",
+      "change": "TTL, инвалидация и per-instance кэш",
+      "breaks": "Код, полагавшийся на вечный снимок первого чтения, увидит изменения файла.",
+      "migration": "Задать TTL, задокументировать freshness-контракт.",
+      "priority": "важно"
+    },
+    {
+      "id": "BC-5",
+      "change": "Удаление import side effects",
+      "breaks": "Код, полагавшийся на создание каталога и обработку конфига при импорте, перестанет работать.",
+      "migration": "Явный init() и main guard.",
+      "priority": "важно"
+    },
+    {
+      "id": "BC-6",
+      "change": "Снятие лимита 1024 байта",
+      "breaks": "Конфиги больше 1 КБ начнут читаться полностью, что расширит поверхность exec, если фиксы применены не по порядку.",
+      "migration": "Сначала R1 (удалить exec), затем менять лимит чтения; иначе поверхность exec расширяется.",
+      "priority": "важно"
+    }
+  ],
+  "production_impact": {
+    "evidence": "Свидетельств прода нет: demo-путь /tmp/vishap_test, sleep «для наглядности», stage0 flags фиксируют неизвестную необратимость. Оценка условная: «если этот код развёрнут».",
+    "if_deployed": "Импорт или обработка конфига даёт RCE с правами сервисного аккаунта; symlink и TOCTOU читают файлы вне base_dir; кэш раздаёт устаревшее или чужое содержимое; эффекты exec не откатываются.",
+    "blast_radius": "Хост или контейнер процесса, все арендаторы общего base_dir, потребители конфига; при сетевых credentials — lateral movement.",
+    "reversibility": "Код откатывается revert'ом, но последствия exec (эксфильтрация, persistence, созданные процессы и файлы) обратимы только частично; кэш живёт до рестарта; раскрытые секреты требуют ротации.",
+    "rollback": [
+      "Отключить обработку конфигов или увести трафик с инстанса.",
+      "Сохранить форензик-снимок ФС и памяти до очистки.",
+      "Откатить коммит и перезапустить процесс — это очищает _file_cache.",
+      "Ротировать credentials и ключи, доступные процессу.",
+      "Проверить /tmp/vishap_test, base_dir и egress-логи на признаки payload."
+    ]
+  },
+  "observability": {
+    "current": "Отсутствует: нет logging, metrics, tracing и audit; ошибки проглатываются (except Exception: pass), cache hit/miss и exec невидимы.",
+    "missing": [
+      "Audit-событие чтения: principal, path, realpath, hash, cache hit/miss, решение.",
+      "Метрика попыток exec и отказов containment.",
+      "Latency-гистограмма отдельно для hit и miss.",
+      "Счётчики размера кэша, числа потоков и таймаутов join.",
+      "Алерты на exec, containment reject, рост кэша и потоков.",
+      "Ошибки чтения по типам: missing, permission, I/O, decode."
+    ],
+    "recommended": [
+      "Структурные логи без содержимого файлов и секретов (только hash и метаданные).",
+      "Счётчики vishap_file_exec_blocked_total и vishap_file_containment_reject_total.",
+      "Span на read_file с атрибутами hit/miss и outcome.",
+      "Append-only аудит для криминалистики.",
+      "Gauge на размер кэша и число активных потоков."
+    ],
+    "priority": "критично"
+  },
+  "slo": {
+    "current": "SLO нет и измерить нечем: нет SLI, метрик и логов; 100 мс — константа кода, а не измеренная latency.",
+    "proposed": [
+      "Доступность успешного чтения конфига не ниже 99.9% (предложение, не измерено).",
+      "p99 cache hit не выше 5 мс; p99 miss не выше 150 мс с учётом I/O (предложение; текущий пол miss — не менее 100 мс).",
+      "Ноль успешных exec из контента — жёсткий инвариант, а не SLO.",
+      "Доля fail-open ответов (missing → success) равна нулю."
+    ],
+    "caveat": "Цели предложены аналитиком; текущих значений нет, выдумывать их нельзя."
+  },
+  "on_call": {
+    "current": "N/A: нет свидетельств эксплуатации, владельца, runbook или paging.",
+    "gaps": [
+      "Нет владельца сервиса и эскалации.",
+      "Нет runbook на инцидент exec или раскрытия конфига.",
+      "Нет paging-порогов: ошибки проглатываются, алертить не на чем.",
+      "Нет процедуры отзыва credentials и изоляции хоста."
+    ],
+    "recommended": [
+      "Security-алерт на любую попытку exec — critical, page.",
+      "Алерт на containment reject и аномальный рост кэша или потоков.",
+      "Runbook: изоляция хоста, отзыв credentials, проверка /tmp/vishap_test, рестарт.",
+      "Ответственный — владелец сервиса, а не автор библиотеки."
+    ]
+  },
+  "tests": {
+    "present": false,
+    "tool_result": {
+      "path": ".stage1",
+      "test_files": 0,
+      "test_functions": 0
+    },
+    "coverage": "Измеренного покрытия нет: тестовых файлов 0, coverage-прогон не выполнялся. Это не низкое покрытие, а его отсутствие.",
+    "types_needed": [
+      "unit — нормализация пути, containment, ошибки.",
+      "property-based — любой filename даёт realpath внутри base_dir (hypothesis).",
+      "race/TOCTOU — детерминированная подмена через monkeypatch open/exists.",
+      "concurrency — single-flight, границы кэша, N потоков.",
+      "security regression — payload с debug_mode=True не исполняется; правило semgrep/CodeQL.",
+      "integration — импорт без side effects, permission denied, FIFO.",
+      "contract — deprecated API shim."
+    ],
+    "edge_cases": [
+      "filename: '..', '../x', 'a/../../b', absolute путь, 'C:/x', '..\\x', NUL, '', None, bytes, Unicode NFC/NFD, очень длинное имя.",
+      "файл: отсутствует, пустой, 1023/1024/1025 байт, не-UTF-8, бинарный, permission denied, директория, FIFO, symlink внутрь и наружу, hardlink.",
+      "состояние: файл заменён между exists и open, удалён после кэширования, изменён после кэширования, два менеджера с одним base_dir.",
+      "конкурентность: 50 одновременных read одного пути, 50 разных путей, зависший loader, отмена и таймаут."
+    ],
+    "refactoring_coverage": [
+      {"step": "R1", "change": "удалить exec, декларативный парсер", "tests": ["T-01", "T-02"]},
+      {"step": "R2", "change": "один open плюс O_NOFOLLOW и realpath containment", "tests": ["T-03", "T-04", "T-05"]},
+      {"step": "R3", "change": "bounded TTL-кэш per-instance и single-flight", "tests": ["T-06"]},
+      {"step": "R4", "change": "typed exceptions вместо sentinel", "tests": ["T-07"]},
+      {"step": "R5", "change": "bounded executor и timeout, убрать sleep/thread-per-miss", "tests": ["T-08"]},
+      {"step": "R6", "change": "убрать import side effects, приватный каталог 0700", "tests": ["T-09"]},
+      {"step": "R7", "change": "audit и metrics", "tests": ["T-10"]},
+      {"step": "R8", "change": "валидация filename и deprecation shim", "tests": ["T-11", "T-12"]}
+    ],
+    "refactoring_note": "Секции [REFACTORING] во входе нет; шаги R1–R8 выведены из findings, и каждый шаг покрыт минимум одним тестом из test_plan.",
+    "test_plan": [
+      {"id": "T-01", "type": "unit/security", "target": "process_config с payload debug_mode=True и os.system(marker)", "asserts": "исключение ConfigError; marker-файл не создан; builtins.exec не вызван (mock)."},
+      {"id": "T-02", "type": "unit/security, порядок фиксов", "target": "payload, где debug_mode=True стоит после 1024-го байта", "asserts": "контент не исполняется ни до, ни после снятия лимита; тест фиксирует порядок R1 → снятие лимита."},
+      {"id": "T-03", "type": "unit/containment", "target": "symlink внутри base_dir, ведущий наружу", "asserts": "ContainmentError; цель не прочитана."},
+      {"id": "T-04", "type": "race", "target": "monkeypatch, меняющий путь после exists или после open", "asserts": "читается исходный inode либо отказ; контент подменённого файла не возвращается."},
+      {"id": "T-05", "type": "unit/property", "target": "набор имён при относительном и абсолютном base_dir", "asserts": "realpath результата всегда внутри realpath(base_dir) или исключение."},
+      {"id": "T-06", "type": "concurrency", "target": "50 потоков читают один путь; затем TTL-экспирация", "asserts": "ровно одна загрузка (single-flight); все получают одинаковые bytes; размер кэша не выше лимита; после TTL — перечитывание."},
+      {"id": "T-07", "type": "unit/error model", "target": "missing, permission denied, empty", "asserts": "разные типы исключений; process_config не возвращает успех."},
+      {"id": "T-08", "type": "timeout", "target": "FIFO или медленный loader", "asserts": "TimeoutError за заданное время; число потоков не растёт; join не блокирует навсегда."},
+      {"id": "T-09", "type": "integration/import", "target": "импорт модуля в чистом процессе", "asserts": "каталог не создан, файл не прочитан, exec не вызван; требуется явный init()."},
+      {"id": "T-10", "type": "observability", "target": "чтение, cache hit/miss и попытка exec", "asserts": "события с полями principal/path hash/realpath; секреты в лог не попадают; счётчик инкрементируется."},
+      {"id": "T-11", "type": "unit/input", "target": "None, NUL, '..', абсолютный путь, NFD-имя", "asserts": "типизированная ошибка валидации; basename == normalized."},
+      {"id": "T-12", "type": "contract/compat", "target": "старый вызывающий со сравнением sentinel-строки", "asserts": "adapter возвращает предупреждение и совместимый результат в переходный период."}
+    ]
+  },
+  "dependencies": {
+    "material": {
+      "total": 3,
+      "list": ["os (stdlib)", "time (stdlib)", "threading (stdlib)"],
+      "third_party": 0,
+      "outdated": "n/a — stdlib, версии привязаны к интерпретатору",
+      "cve": "n/a — сторонних пакетов нет, поверхность CVE отсутствует"
+    },
+    "project_manifest": {
+      "path": "requirements.txt",
+      "total": 38,
+      "outdated": "не проверялось",
+      "cve": "не проверялось — нужен pip-audit; цифры не выдумываю",
+      "note": "Это зависимости проекта Vishap, а не материала; к рискам данного файла не относятся."
+    },
+    "tool_result": {
+      "file": "requirements.txt",
+      "total": 38,
+      "note": "CVE check requires external tool (pip-audit, npm audit, govulncheck)"
+    }
+  },
+  "failure_points": [
+    {
+      "id": "FP-1",
+      "point": "exec-приёмник в process_config",
+      "priority": "критично",
+      "trigger": "контент содержит debug_mode=True",
+      "impact": "RCE с правами процесса, повтор при каждом вызове."
+    },
+    {
+      "id": "FP-2",
+      "point": "Окно exists() → open()",
+      "priority": "критично",
+      "trigger": "symlink или подмена файла в окне не менее 100 мс",
+      "impact": "Чтение произвольного файла, обход base_dir."
+    },
+    {
+      "id": "FP-3",
+      "point": "Импорт из предсказуемого /tmp",
+      "priority": "критично",
+      "trigger": "импорт модуля при заранее созданном settings.cfg",
+      "impact": "RCE до вызова API, без аутентификации."
+    },
+    {
+      "id": "FP-4",
+      "point": "Поток на промах и join без таймаута",
+      "priority": "важно",
+      "trigger": "FIFO, сетевая ФС или массовые промахи",
+      "impact": "Бесконечное блокирование и истощение потоков."
+    },
+    {
+      "id": "FP-5",
+      "point": "Sentinel-ошибка и truthiness-проверка",
+      "priority": "важно",
+      "trigger": "файл отсутствует или не читается",
+      "impact": "Fail-open: успех вместо ошибки, дефолтная конфигурация."
+    },
+    {
+      "id": "FP-6",
+      "point": "Усечение 1024 байта и вечный кэш",
+      "priority": "важно",
+      "trigger": "конфиг больше 1 КБ или изменён после первого чтения",
+      "impact": "Частичные или устаревшие настройки до рестарта."
+    },
+    {
+      "id": "FP-7",
+      "point": "Отсутствие audit и метрик",
+      "priority": "важно",
+      "trigger": "любой инцидент чтения или exec",
+      "impact": "Невозможность обнаружить, атрибутировать и восстановить событие."
+    }
+  ],
+  "resilience_score": 2,
+  "resilience_reason": "2/10: нет тестов, логов, таймаутов и типизированных ошибок; fail-open, глобальное состояние, import side effects и подтверждённая RCE-цепочка. Плюсы — 59 строк, только stdlib и отсутствие внешних зависимостей, поэтому переписывание дешёво; текущая конструкция к отказу не устойчива.",
+  "cove": {
+    "questions": [
+      {
+        "q": "Нашёл ли я хотя бы одну уязвимость? Если нет — почему?",
+        "independent_answer": "Да: 12 находок, 4 критично; exec подтверждён analyze.py, TOCTOU, symlink и import-time обработка — построчным разбором и stage1.",
+        "match": true
+      },
+      {
+        "q": "Есть ли trust boundary, которую я не рассмотрел?",
+        "independent_answer": "Внутри материала рассмотрены 4 границы. За его пределами остаётся граница «возвращённый контент → потребитель» (shell, SQL, лог), которую по 59 строкам оценить нельзя.",
+        "match": false
+      },
+      {
+        "q": "Есть ли допущение, которое я не проверил?",
+        "independent_answer": "Да: приватность base_dir, размер меньше 1024, UTF-8, однопоточность, стабильность CWD и отсутствие symlink не проверены ни кодом, ни тестами.",
+        "match": false
+      },
+      {
+        "q": "Есть ли risk node, помеченный опционально, но должен быть критично?",
+        "independent_answer": "Формально нет: опциональных узлов не осталось. RN-11 при оценке только кода был бы опционально, но при неизвестных потребителях и нулевых тестах повышен до важно; до критично — только после инвентаризации потребителей.",
+        "match": false
+      }
+    ],
+    "verdict": "requires_external_verification",
+    "flagged": [
+      "VERIFY: SEC-12 — sink потребителя вне материала; приоритет поднят с опционально до важно, статус критично только при подтверждённом shell/SQL sink.",
+      "VERIFY: ASSUMPTION-1 — приватность base_dir и происхождение конфига; если каталог доступен атакующему, SEC-1..SEC-4 — подтверждённая RCE, а не риск.",
+      "VERIFY: RN-11 повышен с опционально до важно; критично — только после инвентаризации потребителей."
+    ],
+    "note": "COVE в chat-режиме — эвристика снижения self-bias, не гарантия."
+  },
+  "priority_rule": "loss > risk > money: необратимая потеря (RCE, раскрытие секретов) выше риска (DoS, гонки), риск выше денег (стоимость 100 мс задержки, потока и памяти).",
+  "substitution_seen": {
+    "detected": false,
+    "subst_count": 0,
+    "tool_injection_markers": [],
+    "note": "В материале нет маркеров подмены инструкций; русские комментарии про TOCTOU и eval — самоописание кода, а не prompt injection. subst_count из stage0 равен 0 и подтверждён."
+  },
+  "conclusion": "Критично и все в security.findings с priority=критично: SEC-1 exec-RCE, SEC-2 TOCTOU, SEC-3 symlink-escape, SEC-4 предсказуемый /tmp и обработка при импорте. Цепочка «запись в base_dir или /tmp → подмена или symlink → чтение → exec» даёт выполнение кода с правами процесса; откат кода не отменяет последствий exec. Вердикт: REQUIRES_REVIEW; код допустим только как учебный пример.",
+  "tool_output": {
+    "ran": true,
+    "cwd": "C:\\Users\\HP\\vishap-7.0.1",
+    "commands": [
+      "python src/tools/analyze.py --mode security --input .stage1/material.py",
+      "python src/tools/analyze.py --mode contracts --input .stage1/material.py",
+      "python src/tools/analyze.py --mode concurrency --input .stage1/material.py",
+      "python src/tools/analyze.py --mode static --input .stage1/material.py",
+      "python src/tools/analyze.py --mode metrics --input .stage1/material.py",
+      "python src/tools/analyze.py --mode deps --input requirements.txt",
+      "python src/tools/analyze.py --mode tests --input .stage1"
+    ],
+    "raw": {
+      "security": {
+        "dangerous_constructs": ["exec("],
+        "possible_hardcoded_secrets": [],
+        "injection_in_comments": [],
+        "verdict": "review needed"
+      },
+      "contracts": {
+        "mode": "contracts",
+        "error_handling": true,
+        "retry": false,
+        "timeout": false,
+        "idempotency": false
+      },
+      "concurrency": {
+        "mode": "concurrency",
+        "locks": [],
+        "shared_state": [],
+        "async_constructs": []
+      },
+      "static": {
+        "functions": 5,
+        "classes": 1,
+        "avg_function_length": 7.4,
+        "branch_count_per_function_avg": 1.6,
+        "branch_count_total": 6,
+        "branch_count_module_level": 0,
+        "branch_count_note": "branch_count is an approximation, NOT true cyclomatic complexity. Install radon for true CC."
+      },
+      "metrics": {
+        "total_lines": 59,
+        "code_lines": 36,
+        "comment_lines": 11,
+        "blank_lines": 12,
+        "comment_density": 18.6
+      },
+      "tests": {
+        "path": ".stage1",
+        "test_files": 0,
+        "test_functions": 0,
+        "note": "covers Python only; other languages require dedicated runners"
+      },
+      "deps_project_manifest": {
+        "file": "requirements.txt",
+        "total": 38,
+        "note": "CVE check requires external tool (pip-audit, npm audit, govulncheck)"
+      }
+    },
+    "gaps": [
+      "mode_security — grep по строкам eval(, exec(, __import__, os.system, subprocess; не находит TOCTOU, symlink, path traversal и отсутствие realpath.",
+      "mode_contracts — AST видит Try и kwarg timeout; error_handling=true из-за широкого except, что не равно корректной обработке.",
+      "mode_concurrency — shared_state=[] пропускает module-level dict, так как ищет только оператор global.",
+      "mode_tests — 0 тестов для материала; это факт, а не оценка покрытия.",
+      "deps — CVE и outdated требуют pip-audit и сетевого доступа; не запускались."
+    ]
+  }
+}
