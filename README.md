@@ -1,93 +1,55 @@
+# Vishap
 
-## What's new in v7.2.0
-
-- **Direct DeepSeek API**: Removed the DSH harness dependency. Vishap now communicates directly with the DeepSeek API via `DEEPSEEK_API_KEY`, simplifying the architecture and reducing startup time.
-- **Local Setup Fixes**: Added PowerShell automation scripts (`start_all.ps1`, `run_local.ps1`) for one-click launch on Windows. Fixed BOM issues in configuration files.
-- **Database & History**: Full PostgreSQL support with Alembic migrations for persistent job history and audit trails.
-- **Improved Analysis**: Validated the 6-stage pipeline with real-world test materials (e.g., detecting TOCTOU, RCE via `exec`, and symlink escapes).
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
-> рџ”¬ 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
+> 🐉 **Vishap** — 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
 
-**Vishap** takes a file as input в†’ returns a structured Markdown report with risks, STRIDE threat model, refactoring options and **audit trail** with PII detection and compliance flags.
+**Vishap** takes a file as input → returns a structured Markdown report with risks, STRIDE threat model, refactoring options and **audit trail** with PII detection and compliance flags.
 
-## рџЊђ Links
+## 🌐 Links
 
-- **Documentation:** [https://dvddv9.github.io/vishap/](https://dvddv9.github.io/vishap/)
-- **Landing Page:** [https://dvddv9.github.io/vishap/landing/](https://dvddv9.github.io/vishap/landing/)
+- **Documentation:** https://dvddv9.github.io/vishap/
+- **Landing Page:** https://dvddv9.github.io/vishap/landing/
 - **GitHub App:** Auto-analyze PR diffs and comment on findings.
-- **Releases:** [https://github.com/dvddv9/vishap/releases/latest](https://github.com/dvddv9/vishap/releases/latest)
+- **Releases:** https://github.com/dvddv9/vishap/releases/latest
 
-## рџ–Ґ Desktop App (v7.0.0)
+## 🎉 What's new in v7.2.0
 
-Vishap is now available as a **native desktop application** (Windows) via Tauri.
+- **Direct DeepSeek API**: removed the DSH harness dependency. Vishap now talks to DeepSeek directly via `DEEPSEEK_API_KEY`, simplifying the architecture and reducing startup time.
+- **Multi-provider UI**: switch between **Custom (OpenAI-compatible)**, **Harness (DSH)**, and **DeepSeek (direct)** right from the Dashboard. Settings are persisted in `data/settings.json` and applied immediately.
+- **Local setup automation**: `install.bat`, `start_all.ps1`, `create_shortcut.ps1`, `apply_custom_llm.py` — one-click launch on Windows, desktop shortcut, BOM fixes, and a ready-made OpenAI-compatible provider.
+- **Database & history**: full PostgreSQL 16 support with Alembic migrations (`001`–`005`) for persistent jobs, tenants, and audit trails.
+- **Improved analysis**: validated the 6-stage pipeline on real-world materials (TOCTOU, RCE via `exec`, symlink escapes, STRIDE threat modelling with 24 threats).
 
-### Features
-- **Native window** (3.5 MB `.exe`, 1.5 MB installer).
-- **Auto-start Python backend** from `.venv`.
-- **Rust IPC fallback** (bypasses Private Network Access).
-- **Memory job store** (no Postgres required).
-- **Clerk gated** for desktop mode.
+## 🛠️ Features
 
-### Download
-| Platform | File |
-|---|---|
-| Windows (installer) | [Vishap_7.0.0_x64-setup.exe](https://github.com/dvddv9/vishap/releases/latest) |
-| Windows (MSI) | [Vishap_7.0.0_x64_en-US.msi](https://github.com/dvddv9/vishap/releases/latest) |
-
-### Quick start
-1. Download `Vishap_7.0.0_x64-setup.exe`.
-2. Run the installer (UAC prompt).
-3. Launch **Vishap** from the Start Menu.
-4. The app auto-starts the Python backend and opens the UI.
-
-## рџљЂ What's new in v7.0.0
-
-The slim release: one distribution, one UI, one LLM chain, one process manager.
-
-- **Single UI surface:** Streamlit removed; `ui-next/` (and the Tauri desktop shell) is the UI.
-- **Single LLM chain:** the DSH harness is the only provider. Direct DeepSeek / OpenAI / Ollama calls are gone вЂ” every stage goes through a local harness (`HARNESS_URL` + `HARNESS_TOKEN`).
-- **PyPI only:** Dockerfile, compose stack, image workflows and the Docker Hub images are gone; deploy with `pip` + `systemd` ([docs/VPS-DEPLOY.md](docs/VPS-DEPLOY.md)).
-- **Desktop:** Tauri app with auto-start backend, Rust IPC fallback and an in-memory job store (no Postgres).
-- **Fresh history:** release tags before v7 were deleted; [docs/HISTORY.md](docs/HISTORY.md) keeps what mattered.
-- **Usable UI:** copy/export the report, audit export (JSON), delete a job or clear the history, "Load example" in the analyzer, and a harness badge with a **Start** button.
-- **No UAC:** the desktop app runs as a standard user (`asInvoker`) with its own per-user WebView2 profile.
-- **Version:** `6.6.0` в†’ `7.0.0` everywhere.
-
-## рџ›  Features
-
-- **6-stage pipeline:** Ingestion в†’ Taint Analysis в†’ Dataflow в†’ Risk Assessment в†’ Verdict в†’ Report.
+- **6-stage pipeline:** Ingestion → Taint Analysis → Dataflow → Risk Assessment → Verdict → Report.
 - **Multi-language:** Python, Java, C (AST + taint patterns).
-- **Async API:** FastAPI with Celery workers.
+- **Multi-provider LLM:** DeepSeek (direct), DSH Harness, or any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together).
+- **Async API:** FastAPI + Celery workers (optional in-process fallback).
 - **Security:** HMAC-SHA256 for API keys (with pepper), Fernet for secrets.
 - **Observability:** Structlog (JSON), Prometheus `/metrics`, OpenTelemetry traces.
-- **CI/CD:** GitHub Actions (tests, lint, docs deploy, PyPI publish).
-- **Desktop:** Tauri app (Windows).
+- **CI/CD:** GitHub Actions (tests, lint, docs deploy).
+- **Desktop:** Tauri app for Windows.
 
-## рџ“¦ Quick Start
+## 📦 Quick Start (Windows)
 
-### Desktop (Windows)
-1. Download `Vishap_7.0.0_x64-setup.exe`.
-2. Run installer (UAC).
-3. Launch **Vishap** from Start Menu.
+### One-click installer
+1. Download the repo (ZIP or `git clone`).
+2. Double-click `install.bat`.
+3. Wait for it to install Python, Node.js, PostgreSQL, and dependencies.
+4. Double-click `start_all.ps1` (or the **Vishap** desktop shortcut) — the API, UI, and DSH (if needed) will start and the browser will open.
 
-### Local dev (Windows): one-click
-
-Double-click `start_vishap_dev.bat`. It starts the backend from `.venv` (`python -m src.main`, `PORT=8080`), starts the UI (`ui-next`, `npm run dev`, `http://localhost:3000`) and opens the browser.
-
-### CLI (all platforms)
-```bash
-vishap analyze file.py
-```
-
-### API
-```bash
-python -m venv .venv && .venv/bin/pip install -r requirements.txt
+### Manual API + UI
+```powershell
+python -m venv venv
+.\venv\Scripts\Activate.ps1
+pip install -r requirements.txt
 python -m src.main        # http://127.0.0.1:8080/docs
-```
 
-
-
-
+# in a second window
+cd ui-next
+npm install
+npm run dev               # http://localhost:3000
