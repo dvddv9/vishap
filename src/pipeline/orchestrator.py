@@ -313,7 +313,8 @@ def run_audit(material: str, session_id: str, model: str = "harness",
               escalation_level: str = "",
               stage2_result: dict = None,
               final_markdown: str = "",
-              llm_error: str = "") -> dict:
+              llm_error: str = "",
+              context_thread: dict | None = None) -> dict:
     """Собирает audit-запись."""
     pii = detect_pii(material)
     compliance = detect_compliance(material, pii)
@@ -330,7 +331,7 @@ def run_audit(material: str, session_id: str, model: str = "harness",
     # v7.2: #2 evidence.python_run -> critique_verdict
     if not force_emergency and not llm_error:
         critique = compute_critique_verdict(
-            context_thread=None,
+            context_thread=context_thread,
             pii=pii,
             compliance=compliance,
             cwe_ids=cwe_ids,
@@ -397,7 +398,7 @@ def run_audit(material: str, session_id: str, model: str = "harness",
 
     # v7.2: #3 fidelity_index
     audit["fidelity_index"] = compute_fidelity_index(
-        context_thread=None,
+        context_thread=context_thread,
         stage2_result=stage2_result,
         cwe_ids=cwe_ids,
     )
@@ -405,13 +406,13 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         audit["fidelity_index_note"] = "not provided (VERIFY: not computed)"
     # v7.2: #6 bias_check
     audit["bias_check"] = compute_bias_check(
-        context_thread=None,
+        context_thread=context_thread,
         findings=stage2_result.get("risk_nodes", []) if isinstance(stage2_result, dict) else [],
         fidelity_index=audit.get("fidelity_index"),
     )
     # v7.2: #5 reproducer
     _rep = compute_reproducer(
-        context_thread=None,
+        context_thread=context_thread,
         stage2_result=stage2_result,
         material=material,
     )
@@ -487,6 +488,19 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         original_audit_pii = {}
         original_audit_compliance = []
 
+    context_thread = {
+        "material_hash": material_hash_full,
+        "metrics": {},
+        "cwe_found": [],
+        "evidence": {"python_run": False, "tests_run": False, "ast_parsed": False},
+        "decisions": {"level": None, "priority": None, "confidence": None, "fix_class": None},
+        "assumptions": [],
+        "open_questions": [],
+        "checked": [],
+        "not_found": [],
+        "negative_evidence": [],
+    }
+
     stage0 = _timed_stage(log, "stage0", session_id, stage0_orchestrator, material, filename)
     if isinstance(stage0, dict):
         stage0["session_id"] = session_id
@@ -542,7 +556,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
 
         if verbose:
             print("[Audit] Сбор audit-записи (emergency)...")
-        audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=True, context=f"{filename}:{session_id}", redaction_map=redaction_map if "redaction_map" in dir() else {}, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, llm_error=llm_error)
+        audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=True, context=f"{filename}:{session_id}", redaction_map=redaction_map if "redaction_map" in dir() else {}, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, llm_error=llm_error, context_thread=context_thread)
         if verbose:
             print(f"  → audit_id: {audit['audit_id']}")
             print(f"  → material_hash: {audit['material_hash']}")
@@ -666,6 +680,11 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     if verbose:
         print()
 
+    # v7.2: #1 context_thread (after stage1)
+    context_thread["metrics"] = stage1.get("metrics", {}) if isinstance(stage1, dict) else {}
+    context_thread["evidence"]["python_run"] = True
+    context_thread["evidence"]["ast_parsed"] = True
+
     if verbose:
         print("[Stage 2] Analyst...")
     _ctx_files = None
@@ -685,6 +704,15 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         _stage2_ctx["context_files"] = _ctx_files
     stage2 = _timed_stage(log, "stage2", session_id, stage2_analyst, material, _stage2_ctx)
     risk_nodes = stage2.get("risk_nodes", [])
+    # v7.2: #1 context_thread (after stage2)
+    context_thread["cwe_found"] = list(risk_nodes)
+    context_thread["decisions"]["level"] = level
+    context_thread["decisions"]["priority"] = "критично" if any(
+        str(r.get("priority", "")).lower() in ("критично", "critical")
+        for r in risk_nodes if isinstance(r, dict)
+    ) else "важно"
+    context_thread["decisions"]["confidence"] = 0.8
+
     if verbose:
         print(f"  → risk nodes: {len(risk_nodes)}")
         print()
@@ -732,7 +760,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     force_emergency = bool(stage0.get('force_emergency', False))
     _escalation = _safe_escalation_note(stage4)
 
-    audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=force_emergency, context=f"{filename}:{session_id}", redaction_map=redaction_map, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, final_markdown=final_markdown, llm_error=llm_error)
+    audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=force_emergency, context=f"{filename}:{session_id}", redaction_map=redaction_map, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, final_markdown=final_markdown, llm_error=llm_error, context_thread=context_thread)
     if verbose:
         print(f"  → audit_id: {audit['audit_id']}")
         print(f"  → material_hash: {audit['material_hash']}")
@@ -933,7 +961,7 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     force_emergency = bool(stage0.get('force_emergency', False))
     _escalation = _safe_escalation_note(stage4)
 
-    audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=force_emergency, context=f"{filename}:{session_id}", redaction_map=redaction_map, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, final_markdown=final_markdown, llm_error=llm_error)
+    audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=force_emergency, context=f"{filename}:{session_id}", redaction_map=redaction_map, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, final_markdown=final_markdown, llm_error=llm_error, context_thread=context_thread)
     final_markdown += (
         "\n\n[AUDIT_TRAIL]\n"
         f"generator: Vishap {__version__}\n"
