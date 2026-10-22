@@ -91,7 +91,7 @@ setup_tracing()
 app = FastAPI(
     title=f"{APP_NAME} API",
     description="Vishap V6.0.3 — 6-стадийный LLM-конвейер для анализа материалов",
-    version="7.0.1",
+    version="7.2.1",
     lifespan=lifespan,
 )
 
