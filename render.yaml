@@ -19,12 +19,8 @@
       - key: CUSTOM_LLM_KEY
         sync: false
       - key: VISHAP_DATA_DIR
-        value: /data
+        value: /tmp/data
       - key: OTEL_SDK_DISABLED
         value: "true"
       - key: PYTHONUNBUFFERED
         value: "1"
-    disk:
-      name: vishap-data
-      mountPath: /data
-      sizeGB: 1
