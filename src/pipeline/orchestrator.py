@@ -335,6 +335,7 @@ def run_audit(material: str, session_id: str, model: str = "harness",
             pii=pii,
             compliance=compliance,
             cwe_ids=cwe_ids,
+            stage2_result=stage2_result,
         )
     if llm_error:
         risk_verdict, critique = "REQUIRES_REVIEW", "ERROR"

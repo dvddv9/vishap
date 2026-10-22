@@ -322,6 +322,16 @@ def ensure_harness(url: str | None = None, token: str | None = None,
         ok, err = probe(url, token)
         token = token if ok else ""
 
+    # If no candidate token authenticated, do a direct probe once: an
+    # already-running harness that accepts unauthenticated probes (or a
+    # monkeypatched probe in tests) means we must not spawn a second one.
+    if not token:
+        ok_probe, _ = probe(url)
+        if ok_probe:
+            result["reachable"] = True
+            _STATE = result
+            return result
+
     if token:
         result["reachable"] = True
         result["token"] = token

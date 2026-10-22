@@ -106,13 +106,29 @@ def compute_risk_verdict(
 def compute_critique_verdict(context_thread: dict | None,
                               pii: dict | None,
                               compliance: list | None,
-                              cwe_ids: list | None) -> str:
+                              cwe_ids: list | None,
+                              stage2_result: dict | None = None) -> str:
     """Return critique verdict with Python-evidence gating.
 
+    - critical risk_nodes / security.findings -> REQUIRES_REVIEW (even w/o python_run)
     - no Python run -> NEEDS_VERIFICATION (honest: cannot assert)
     - pii / compliance / cwe -> REQUIRES_REVIEW
     - else -> SAFE
     """
+    # v7.2.1: critical LLM findings -> REQUIRES_REVIEW (независимо от python_run)
+    s2 = stage2_result or {}
+    risk_nodes = s2.get("risk_nodes") or []
+    security = s2.get("security") or {}
+    findings = security.get("findings") if isinstance(security, dict) else []
+    if not isinstance(findings, list):
+        findings = []
+    has_critical = any(
+        str((r or {}).get("priority", "")).lower() in ("\u043a\u0440\u0438\u0442\u0438\u0447\u043d\u043e", "critical")
+        for r in (list(risk_nodes) + list(findings)) if isinstance(r, dict)
+    )
+    if has_critical:
+        return "REQUIRES_REVIEW"
+
     ct = context_thread or {}
     evidence = ct.get("evidence") or {}
     python_run = bool(evidence.get("python_run"))
