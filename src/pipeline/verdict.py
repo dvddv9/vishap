@@ -204,3 +204,57 @@ def compute_fidelity_index(context_thread: dict | None,
 
     fi = (evidence_score + mechanism_score + grounding_score + calibration) / 4
     return round(fi, 2)
+
+
+# === v7.2: #6 bias_check ==============================================
+def compute_bias_check(context_thread: dict | None,
+                       findings: list | None,
+                       fidelity_index: float | None = None) -> dict:
+    """Return {"bias_check": "passed"|"flagged"|"not computed (no Python)", "flags": [...]}.
+
+    Rules:
+      - not python_run -> "not computed (no Python)"
+      - critical_ratio > 0.5 -> flag
+      - critical == 0 and RCE patterns -> flag
+      - FI > 0.95 -> flag (too good)
+      - FI < 0.3  -> flag (too bad, no Python?)
+    """
+    ct = context_thread or {}
+    evidence = ct.get("evidence") or {}
+    python_run = bool(evidence.get("python_run"))
+    if not python_run:
+        return {"bias_check": "not computed (no Python)", "flags": []}
+
+    items = list(findings or [])
+    if not items and ct.get("cwe_found"):
+        items = list(ct.get("cwe_found") or [])
+
+    critical = 0
+    for f in items:
+        if not isinstance(f, dict):
+            continue
+        prio = str(f.get("priority", "")).lower()
+        if prio in ("\u043a\u0440\u0438\u0442\u0438\u0447\u043d\u043e", "critical"):
+            critical += 1
+    total = len(items) or 1
+
+    flags = []
+    if critical / total > 0.5:
+        flags.append("50% findings critical")
+    if critical == 0:
+        for f in items:
+            if isinstance(f, dict) and ("RCE" in str(f.get("title", "")) or "RCE" in str(f.get("message", ""))):
+                flags.append("0 critical with RCE patterns")
+                break
+
+    fi = fidelity_index
+    if fi is not None:
+        if fi > 0.95:
+            flags.append("FI > 0.95 (too good)")
+        if fi < 0.3:
+            flags.append("FI < 0.3 (too bad, no Python?)")
+
+    return {
+        "bias_check": "passed" if not flags else "flagged",
+        "flags": flags,
+    }

@@ -44,6 +44,7 @@ from src.pipeline.verdict import (
     compute_critique_verdict,  # v7.2: #2 evidence.python_run -> critique
     compute_negative_evidence,  # v7.2: #4 negative_evidence
     compute_fidelity_index,  # v7.2: #3
+    compute_bias_check,  # v7.2: #6
 )
 from src.version import __version__
 
@@ -401,6 +402,12 @@ def run_audit(material: str, session_id: str, model: str = "harness",
     )
     if audit["fidelity_index"] is None:
         audit["fidelity_index_note"] = "not provided (VERIFY: not computed)"
+    # v7.2: #6 bias_check
+    audit["bias_check"] = compute_bias_check(
+        context_thread=None,
+        findings=stage2_result.get("risk_nodes", []) if isinstance(stage2_result, dict) else [],
+        fidelity_index=audit.get("fidelity_index"),
+    )
     audit_file = DATA_DIR / f"audit_{session_id}.json"
     try:
         audit_file.write_text(
