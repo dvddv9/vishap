@@ -694,7 +694,7 @@ app.include_router(llm_config.router)
 
 if __name__ == "__main__":
     import uvicorn
-    host = "0.0.0.0" if is_auth_enabled() else "127.0.0.1"
+    host = "0.0.0.0"  # Docker: -p needs 0.0.0.0; restrict via network/firewall
     print(f"[Auth] API key {'set' if is_auth_enabled() else 'NOT set'} -- binding to {host}")
     uvicorn.run(
         cors_app,
