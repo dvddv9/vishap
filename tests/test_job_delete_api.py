@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """`DELETE /status/{job_id}` вЂ” the endpoint behind the UI's delete buttons.
 
 The dashboard and the report page both call it, so it must be boring: 200 when

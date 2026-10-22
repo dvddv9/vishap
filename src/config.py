@@ -35,6 +35,15 @@ HARNESS_URL = os.getenv("HARNESS_URL", "http://127.0.0.1:3080")
 HARNESS_TOKEN = os.getenv("HARNESS_TOKEN", "")
 HARNESS_TIMEOUT = float(os.getenv("HARNESS_TIMEOUT", "30"))
 
+# === LLM: provider selection (v7.2: custom | harness | auto) ===
+LLM_PROVIDER = os.getenv("VISHAP_LLM_PROVIDER", "auto").strip().lower()
+
+CUSTOM_LLM_URL = os.getenv("CUSTOM_LLM_URL", "")
+CUSTOM_LLM_KEY = os.getenv("CUSTOM_LLM_KEY", "")
+CUSTOM_LLM_MODEL = os.getenv("CUSTOM_LLM_MODEL", "")
+CUSTOM_LLM_TIMEOUT = float(os.getenv("CUSTOM_LLM_TIMEOUT", "120"))
+
+
 # === FastAPI (UI -> API) ===
 API_URL = os.getenv("API_URL", "http://localhost:5001")
 CONVEYOR_API_KEY = os.getenv("CONVEYOR_API_KEY", "")

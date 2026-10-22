@@ -1,7 +1,7 @@
 # src/llm/__init__.py
 import os
 from . import client, harness_client
-from .custom_client import CustomLLMClient
+from .custom_client import CustomClient as CustomLLMClient
 
 
 def get_llm_client():

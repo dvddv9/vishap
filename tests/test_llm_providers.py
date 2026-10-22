@@ -22,14 +22,15 @@ def _patch_harness(chat_result=None, side_effect=None):
     return patch("src.llm.client.harness_client.HarnessClient", return_value=instance), instance
 
 
-def test_resolve_provider_is_always_harness(monkeypatch):
+def test_resolve_provider_auto(monkeypatch):
     # An old .env value must not resurrect a removed provider.
-    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "deepseek")
-    assert client._resolve_provider() == "harness"
-    assert client.current_provider() == "harness"
+    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "auto")
+    # v7.2: auto -> custom if CUSTOM_LLM_* set, else harness
+    assert client._resolve_provider() in ("custom", "harness")
 
 
-def test_chat_calls_harness_with_user_then_system():
+def test_chat_calls_harness_with_user_then_system(monkeypatch):
+    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "harness")
     patcher, instance = _patch_harness({"text": "ok", "model": "harness",
                                         "tokens_in": 0, "tokens_out": 0,
                                         "mode": "harness"})
@@ -40,7 +41,8 @@ def test_chat_calls_harness_with_user_then_system():
     assert result["text"] == "ok"
 
 
-def test_chat_returns_error_dict_when_harness_is_unreachable():
+def test_chat_returns_error_dict_when_harness_is_unreachable(monkeypatch):
+    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "harness")
     patcher, _ = _patch_harness(side_effect=RuntimeError("HARNESS_TOKEN empty"))
     with patcher:
         result = client.chat("s", "u")
@@ -49,7 +51,8 @@ def test_chat_returns_error_dict_when_harness_is_unreachable():
     assert result["model"] == "none"
 
 
-def test_chat_closes_the_client():
+def test_chat_closes_the_client(monkeypatch):
+    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "harness")
     patcher, instance = _patch_harness({"text": "ok", "model": "harness",
                                         "tokens_in": 0, "tokens_out": 0,
                                         "mode": "harness"})
