@@ -1,4 +1,11 @@
-﻿[![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
+
+## What's new in v7.2.0
+
+- **Direct DeepSeek API**: Removed the DSH harness dependency. Vishap now communicates directly with the DeepSeek API via `DEEPSEEK_API_KEY`, simplifying the architecture and reducing startup time.
+- **Local Setup Fixes**: Added PowerShell automation scripts (`start_all.ps1`, `run_local.ps1`) for one-click launch on Windows. Fixed BOM issues in configuration files.
+- **Database & History**: Full PostgreSQL support with Alembic migrations for persistent job history and audit trails.
+- **Improved Analysis**: Validated the 6-stage pipeline with real-world test materials (e.g., detecting TOCTOU, RCE via `exec`, and symlink escapes).
+[![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
