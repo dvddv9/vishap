@@ -1,4 +1,4 @@
-# Vishap
+mi# Vishap
 
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
@@ -52,4 +52,6 @@ python -m src.main        # http://127.0.0.1:8080/docs
 # in a second window
 cd ui-next
 npm install
-npm run dev               # http://localhost:3000
+npm run dev               # http://localhost:3000 ## 📄 License
+
+AGPL v3 — see [LICENSE](LICENSE).
