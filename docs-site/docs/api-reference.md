@@ -1,36 +1,73 @@
 # API Reference
 
-Base URL: `http://localhost:5001`
+Base URL: **`http://localhost:8080`**
 
 Most `/analyze*` endpoints accept an optional API key (`X-API-Key`) when `CONVEYOR_API_KEY` is set.
+
+---
 
 ## `GET /health`
 
 Liveness probe.
 
-```bash
-curl http://localhost:5001/health
+```
+curl http://localhost:8080/health
 ```
 
-```json
-{"status": "ok", "timestamp": "2026-10-16T12:00:00"}
+```
+{"status": "ok", "timestamp": "2026-10-22T12:00:00", "harness": {"url": "http://127.0.0.1:3080", "reachable": false}}
 ```
 
-## `POST /analyze`
+---
+
+GET /llm/config
+
+Returns the current LLM provider settings (API key is never exposed).
+
+```
+curl http://localhost:8080/llm/config
+```
+
+```
+{
+  "provider": "custom",
+  "custom_url": "https://api.groq.com/openai/v1",
+  "custom_model": "llama-3.3-70b-versatile",
+  "has_custom_key": true
+}
+```
+
+POST /llm/config
+
+Change the LLM provider. Accepts provider (deepseek | harness | custom), and for custom — custom_url, custom_model, custom_key.
+
+```
+curl -X POST http://localhost:8080/llm/config \
+  -H "Content-Type: application/json" \
+  -d '{"provider": "custom", "custom_url": "https://api.groq.com/openai/v1", "custom_model": "llama-3.3-70b-versatile", "custom_key": "gsk_..."}'
+```
+
+```
+{"status": "ok", "provider": "custom"}
+```
+
+---
+
+POST /analyze
 
 Run the full pipeline synchronously.
 
-- **Auth:** optional `X-API-Key` (when `CONVEYOR_API_KEY` is set)
+Auth: optional X-API-Key (when CONVEYOR_API_KEY is set)
 
-```bash
-curl -X POST http://localhost:5001/analyze \
+```
+curl -X POST http://localhost:8080/analyze \
   -H "Content-Type: application/json" \
   -d '{"material": "def f(): pass", "filename": "x.py"}'
 ```
 
-```json
+```
 {
-  "session_id": "sess-2026-10-16-120000",
+  "session_id": "sess-2026-10-22-120000",
   "filename": "x.py",
   "level": "D0",
   "final_markdown": "# D0 — f()\n...",
@@ -38,31 +75,33 @@ curl -X POST http://localhost:5001/analyze \
 }
 ```
 
-Errors: `400` empty material, `500` pipeline error.
+Errors: 400 empty material, 500 pipeline error.
 
-## `POST /analyze/async`
+---
+
+POST /analyze/async
 
 Enqueue an analysis job (Celery + Redis; falls back to an in-process background task when the broker is unavailable).
 
-- **Auth:** optional `X-API-Key`
+Auth: optional X-API-Key
 
-```bash
-curl -X POST http://localhost:5001/analyze/async \
+```
+curl -X POST http://localhost:8080/analyze/async \
   -H "Content-Type: application/json" \
   -d '{"material": "def f(): pass", "filename": "x.py"}'
 ```
 
-```json
+```
 {"job_id": "job-abc123def456", "status": "queued"}
 ```
 
-## `GET /status/{job_id}`
+GET /status/{job_id}
 
-```bash
-curl http://localhost:5001/status/job-abc123def456
+```
+curl http://localhost:8080/status/job-abc123def456
 ```
 
-```json
+```
 {
   "job_id": "job-abc123def456",
   "status": "done",
@@ -74,75 +113,87 @@ curl http://localhost:5001/status/job-abc123def456
 }
 ```
 
-Errors: `404` job not found.
+Errors: 404 job not found.
 
-## `GET /report/{job_id}`
+GET /report/{job_id}
 
-```bash
-curl http://localhost:5001/report/job-abc123def456
+```
+curl http://localhost:8080/report/job-abc123def456
 ```
 
 Returns the full result object.
 
-Errors: `404` job not found, `409` job not done yet.
+Errors: 404 job not found, 409 job not done yet.
 
-## `POST /analyze/secure`
+---
 
-Clerk-authenticated variant of `/analyze` (multi-tenant).
+POST /analyze/secure
 
-- **Auth:** `Authorization: Bearer <clerk-jwt>`
+Clerk-authenticated variant of /analyze (multi-tenant).
 
-```bash
-curl -X POST http://localhost:5001/analyze/secure \
+Auth: Authorization: Bearer <clerk-jwt>
+
+```
+curl -X POST http://localhost:8080/analyze/secure \
   -H "Authorization: Bearer <clerk-jwt>" \
   -H "Content-Type: application/json" \
   -d '{"material": "def f(): pass", "filename": "x.py"}'
 ```
 
-Errors: `401` missing/invalid token.
+Errors: 401 missing/invalid token.
 
-## `POST /webhook/github`
+---
 
-GitHub App webhook. On `pull_request` (`opened`) it analyzes the diff and posts a PR comment.
+POST /webhook/github
 
-- **Auth:** `X-Hub-Signature-256` (HMAC, `GITHUB_WEBHOOK_SECRET`)
+GitHub App webhook. On pull_request (opened) it analyzes the diff and posts a PR comment.
+
+Auth: X-Hub-Signature-256 (HMAC, GITHUB_WEBHOOK_SECRET)
 
 ```json
 {"ok": true, "triggered": true, "verdict": "REQUIRES_REVIEW"}
 ```
 
-Errors: `403` invalid signature.
+Errors: 403 invalid signature.
 
-## `POST /webhook/stripe`
+---
 
-Stripe webhook. Handles `customer.subscription.updated`.
+POST /webhook/stripe
 
-- **Auth:** `Stripe-Signature` (HMAC, `STRIPE_WEBHOOK_SECRET`)
+Stripe webhook. Handles customer.subscription.updated.
+
+Auth: Stripe-Signature (HMAC, STRIPE_WEBHOOK_SECRET)
 
 ```json
 {"ok": true, "event": "customer.subscription.updated", "subscription_id": "sub_123"}
 ```
 
-Errors: `400` invalid payload/signature, `500` webhook secret not set.
+Errors: 400 invalid payload/signature, 500 webhook secret not set.
 
-## `POST /billing/checkout`
+---
+
+POST /billing/checkout
 
 Create a Stripe Checkout Session (subscription mode).
 
-```bash
-curl -X POST http://localhost:5001/billing/checkout \
+```
+curl -X POST http://localhost:8080/billing/checkout \
   -H "Content-Type: application/json" \
   -d '{"email": "a@b.c", "success_url": "https://ok", "cancel_url": "https://cancel"}'
 ```
 
-```json
+```
 {"session_id": "cs_test_...", "url": "https://checkout.stripe.com/..."}
 ```
 
-## `GET /metrics`
+---
 
-Prometheus metrics (`text/plain; version=0.0.4`).
+GET /metrics
 
-```bash
-curl http://localhost:5001/metrics
+Prometheus metrics (text/plain; version=0.0.4).
+
+```
+curl http://localhost:8080/metrics
+```
+
 ```
