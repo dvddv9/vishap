@@ -63,7 +63,6 @@ export default function LLMSettings() {
       >
         <option value="custom">Custom (OpenAI-compatible)</option>
         <option value="harness">DSH Harness</option>
-        <option value="deepseek">DeepSeek API</option>
       </select>
 
       {cfg.provider === "custom" && (

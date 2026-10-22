@@ -30,6 +30,16 @@ export interface AuditSummary {
   risk_verdict?: string;
   cwe_ids?: string[];
   owasp_categories?: string[];
+  // v7.2
+  fidelity_index?: number | null;
+  fidelity_index_note?: string | null;
+  bias_check?: { bias_check: string; flags?: string[] } | null;
+  reproducer?: string | null;
+  reproducer_verified?: boolean | null;
+  reproducer_note?: string | null;
+  negative_evidence?: Array<{ cwe: string; reason: string }> | null;
+  report_date?: string | null;
+  valid_until?: string | null;
   [key: string]: unknown;
 }
 

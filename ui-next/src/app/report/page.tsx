@@ -101,6 +101,21 @@ function ReportInner() {
     }
   }
 
+
+  // v7.2: audit metadata
+  const audit = report?.audit as
+    | (Record<string, unknown> & {
+        fidelity_index?: number | null;
+        fidelity_index_note?: string | null;
+        bias_check?: { bias_check: string; flags?: string[] } | null;
+        reproducer_verified?: boolean | null;
+        reproducer_note?: string | null;
+        negative_evidence?: Array<{ cwe: string; reason: string }> | null;
+        report_date?: string | null;
+        valid_until?: string | null;
+      })
+    | undefined;
+
   const verdict = report?.audit?.risk_verdict ?? report?.critique_verdict ?? null;
 
   return (
@@ -190,6 +205,65 @@ function ReportInner() {
             ) : null}
           </div>
         </header>
+      ) : null}
+
+      {/* v7.2 audit metadata */}
+      {report && audit ? (
+        <section className="mb-6 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Fidelity</div>
+            <div className="text-lg font-mono text-slate-100">
+              {audit.fidelity_index != null ? audit.fidelity_index.toFixed(2) : "n/a"}
+            </div>
+            {audit.fidelity_index_note ? (
+              <div className="text-xs text-slate-500">{audit.fidelity_index_note}</div>
+            ) : null}
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Bias check</div>
+            <div className="text-sm font-mono text-slate-100">
+              {audit.bias_check?.bias_check ?? "n/a"}
+            </div>
+            {audit.bias_check?.flags && audit.bias_check.flags.length > 0 ? (
+              <div className="text-xs text-amber-300">{audit.bias_check.flags.join(", ")}</div>
+            ) : null}
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Reproducer</div>
+            <div className="text-sm font-mono text-slate-100">
+              {audit.reproducer_verified ? "verified" : "not verified"}
+            </div>
+            {audit.reproducer_note ? (
+              <div className="text-xs text-slate-500">{audit.reproducer_note}</div>
+            ) : null}
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3 sm:col-span-2">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Negative evidence</div>
+            <div className="text-xs text-slate-300">
+              {audit.negative_evidence && audit.negative_evidence.length > 0
+                ? `${audit.negative_evidence.length} checked-but-not-found CWEs`
+                : "n/a"}
+            </div>
+            {audit.negative_evidence && audit.negative_evidence.length > 0 ? (
+              <ul className="mt-1 list-disc pl-4 text-xs text-slate-400">
+                {audit.negative_evidence.slice(0, 5).map((e) => (
+                  <li key={e.cwe}>
+                    <span className="font-mono">{e.cwe}</span> — {e.reason}
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </div>
+          <div className="rounded-xl border border-slate-800 bg-slate-900/40 p-3">
+            <div className="text-xs uppercase tracking-wide text-slate-500">Report date</div>
+            <div className="text-xs font-mono text-slate-100">
+              {audit.report_date ? new Date(audit.report_date).toLocaleString() : "n/a"}
+            </div>
+            <div className="text-xs text-slate-500">
+              valid until {audit.valid_until ? new Date(audit.valid_until).toLocaleDateString() : "n/a"}
+            </div>
+          </div>
+        </section>
       ) : null}
 
       {!report && isStillRunning ? (
