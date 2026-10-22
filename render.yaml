@@ -1,0 +1,30 @@
+﻿services:
+  - type: web
+    name: vishap
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: VISHAP_DEV
+        value: "true"
+      - key: VISHAP_LLM_PROVIDER
+        value: "custom"
+      - key: CUSTOM_LLM_URL
+        value: "https://api.deepseek.com/v1"
+      - key: CUSTOM_LLM_MODEL
+        value: "deepseek-chat"
+      - key: CUSTOM_LLM_KEY
+        sync: false
+      - key: VISHAP_DATA_DIR
+        value: /data
+      - key: OTEL_SDK_DISABLED
+        value: "true"
+      - key: PYTHONUNBUFFERED
+        value: "1"
+    disk:
+      name: vishap-data
+      mountPath: /data
+      sizeGB: 1

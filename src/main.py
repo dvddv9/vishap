@@ -105,6 +105,9 @@ app.add_middleware(
     ],
     allow_origin_regex=(
         r"^(https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
+        r"|https?://[a-z0-9-]+\.vercel\.app"
+        r"|https?://[a-z0-9-]+\.onrender\.com"
+        r"|https?://[a-z0-9-]+\.fly\.dev"
         r"|tauri://localhost|https?://tauri\.localhost)$"
     ),
     allow_credentials=True,
