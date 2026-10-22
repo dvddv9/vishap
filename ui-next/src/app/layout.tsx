@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 /** Keep in sync with `pyproject.toml` / `src/version.py`. */
-const VISHAP_VERSION = "7.2.1";
+const VISHAP_VERSION = "7.2.2";
 const GITHUB_URL = "https://github.com/dvddv9/vishap";
 
 export const metadata: Metadata = {
