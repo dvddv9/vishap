@@ -121,3 +121,36 @@ def compute_critique_verdict(context_thread: dict | None,
     if pii or compliance or cwe_ids:
         return "REQUIRES_REVIEW"
     return "SAFE"
+
+
+# === v7.2: #4 negative_evidence =======================================
+CHECKED_CWES = (
+    "CWE-20", "CWE-22", "CWE-79", "CWE-89", "CWE-362", "CWE-367",
+    "CWE-400", "CWE-502", "CWE-611", "CWE-639", "CWE-798", "CWE-918",
+)
+
+_REASON_HINTS = {
+    "CWE-20": "no untrusted input parsing in material",
+    "CWE-22": "no file path construction from user input",
+    "CWE-79": "no HTML/JS output rendering",
+    "CWE-89": "no SQL queries in material",
+    "CWE-362": "no shared mutable state / concurrency",
+    "CWE-367": "no check-then-act on shared resource",
+    "CWE-400": "no unbounded loop / memory growth",
+    "CWE-502": "no deserialization of untrusted data",
+    "CWE-611": "no XML parsing",
+    "CWE-639": "no object references by user-controlled id",
+    "CWE-798": "no embedded credentials",
+    "CWE-918": "no outbound HTTP from user input",
+}
+
+
+def compute_negative_evidence(cwe_ids, stage2_result):
+    """Return [{cwe, reason}] for checked-but-not-found CWEs."""
+    found = set(cwe_ids or [])
+    out = []
+    for cwe in CHECKED_CWES:
+        if cwe in found:
+            continue
+        out.append({"cwe": cwe, "reason": _REASON_HINTS.get(cwe, "not found in material")})
+    return out

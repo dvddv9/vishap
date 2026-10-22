@@ -42,6 +42,7 @@ from src.tools.deps import build_import_graph, collect_context_files
 from src.pipeline.verdict import (
     compute_risk_verdict,  # v5.11.2: consolidated verdict
     compute_critique_verdict,  # v7.2: #2 evidence.python_run -> critique
+    compute_negative_evidence,  # v7.2: #4 negative_evidence
 )
 from src.version import __version__
 
@@ -60,11 +61,7 @@ LLM_UNAVAILABLE_BANNER = (
 
 
 def llm_error_of(stage) -> str | None:
-    """The stage's LLM error text, when that stage never reached the model.
-
-    Stage 0/2/4 return dicts; stage 5 returns the markdown itself. Either way, an
-    errored stage must never be allowed to look like a clean analysis.
-    """
+    """The stage's LLM error text, when that stage never reached the model."""
     if isinstance(stage, str):
         text = stage
         return text if text.lstrip().startswith(LLM_ERROR_PREFIX) else None
@@ -74,6 +71,8 @@ def llm_error_of(stage) -> str | None:
     if stage.get("mode") == "error" or text.startswith(LLM_ERROR_PREFIX):
         return text or "LLM error"
     return None
+
+
 from src.observability.logging import get_logger
 from src.observability.tracing import span
 
@@ -81,10 +80,7 @@ log = get_logger(__name__)
 
 
 def format_runbook_md(audit: dict) -> str:
-    """P2-9: render [RUNBOOK] section for Markdown report.
-
-    Returns empty string if runbook is empty (fail-quiet).
-    """
+    """P2-9: render [RUNBOOK] section for Markdown report."""
     rb = (audit or {}).get("runbook", {}) or {}
     if not rb:
         return ""
@@ -120,6 +116,7 @@ def format_runbook_md(audit: dict) -> str:
 
     return "".join(lines)
 
+
 def _safe_escalation_note(stage) -> str:
     """Extract escalation note from stage4, tolerant to dict/list/None."""
     if not stage or not isinstance(stage, dict):
@@ -143,18 +140,8 @@ MAX_CHARS = 12000   # ~3000 токенов
 
 # === Audit (встроенный compliance-scan) ===
 
-# PII_PATTERNS moved to src/tools/patterns.py (dogfood: circular import fix)
-
-# COMPLIANCE_TRIGGERS moved to src/tools/patterns.py
-
-
-
-
 def detect_material_complete(material: str, final_markdown: str = "") -> bool:
-    """DEPRECATED (v5.8): use `not truncated` from run_pipeline instead.
-    
-    Kept for backward compatibility only. Fragile heuristic — may produce
-    false positives/negatives. The `truncated` flag is deterministic."""
+    """DEPRECATED (v5.8): use `not truncated` from run_pipeline instead."""
     markers = ["truncated", "усечён", "усечен", "slice truncated", "слайс усеч"]
     text = (material or "")[:2000] + " " + (final_markdown or "")[:2000]
     low = text.lower()
@@ -163,26 +150,18 @@ def detect_material_complete(material: str, final_markdown: str = "") -> bool:
             return False
     return True
 
+
 def compute_hash(material: str, context: str = "") -> str:
-    """Compute SHA-256 hash of material.
-    
-    Args:
-        material: input text
-        context: optional context (filename + timestamp) to disambiguate
-                 materials with identical content but different origins.
-    
-    Note (dogfood finding): without context, different materials with
-    identical content would produce the same hash — breaking audit trail
-    uniqueness invariant.
-    """
+    """Compute SHA-256 hash of material."""
     payload = material
     if context:
         payload = f"{context}\n---\n{material}"
     h = hashlib.sha256(payload.encode("utf-8", errors="replace"))
     return f"sha256:{h.hexdigest()}"
 
+
 def strip_llm_audit_blocks(md: str) -> str:
-    """Remove [AUDIT_TRAIL] and [COMPLETENESS] from LLM output (pipeline adds its own)."""
+    """Remove [AUDIT_TRAIL] and [COMPLETENESS] from LLM output."""
     md = re.sub(
         r'\n*\[AUDIT_TRAIL\].*?(?=\n\[|\Z)',
         '', md, flags=re.DOTALL
@@ -194,14 +173,8 @@ def strip_llm_audit_blocks(md: str) -> str:
     return md
 
 
-
 def _filter_copyright_emails(text: str, pattern) -> list:
-    """Return emails NOT in copyright/license/author headers.
-
-    # v5.10.7-pii-copyright-filter: dogfood find (packet-btl2cap.c) --
-    emails in Wireshark copyright header were flagged as PII ->
-    false positive GDPR/152-FZ.
-    """
+    """Return emails NOT in copyright/license/author headers."""
     _MARKERS = (
         "copyright", "(c)", "\u00a9", "author", "maintainer",
         "license", "licence", "written by", "by ",
@@ -227,7 +200,6 @@ def detect_pii(text: str) -> dict:
         matches = pattern.findall(text)
         if not matches:
             continue
-        # v5.10.7-pii-copyright-filter
         if name == "email":
             matches = _filter_copyright_emails(text, pattern)
             if not matches:
@@ -243,7 +215,6 @@ def detect_compliance(text: str, pii: dict | None = None) -> list:
         if any(t in low for t in triggers):
             flags.append(flag)
 
-    # PII -> auto-add GDPR + 152-ФЗ
     if pii:
         if any(k in pii for k in ("email", "phone_ru", "passport_ru", "snils", "iban")):
             if "GDPR" not in flags:
@@ -251,7 +222,6 @@ def detect_compliance(text: str, pii: dict | None = None) -> list:
             if "152-ФЗ" not in flags:
                 flags.append("152-ФЗ")
 
-        # Secrets -> SECRETS flag (critical)
         secret_keys = ("aws_access_key", "aws_secret_key", "stripe_live_key",
                        "stripe_test_key", "github_token", "slack_token",
                        "google_api_key", "private_key", "hardcoded_password",
@@ -270,8 +240,6 @@ def generate_audit_id() -> str:
     return f"audit-{today}-{rand}"
 
 
-
-
 def detect_language(filename: str) -> str:
     """Detect language from filename for SAST tool selection."""
     ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
@@ -281,13 +249,8 @@ def detect_language(filename: str) -> str:
     }.get(ext, "other")
 
 
-
-
 def detect_cwe(text: str) -> list:
-    """Detect CWE IDs mentioned in material (CWE-XXX format).
-
-    Returns list of unique CWE IDs found.
-    """
+    """Detect CWE IDs mentioned in material (CWE-XXX format)."""
     import re as _re
     matches = _re.findall(r"\bCWE-(\d+)\b", text)
     seen = []
@@ -299,12 +262,7 @@ def detect_cwe(text: str) -> list:
 
 
 def collect_findings_cwe(stage2_result: dict | None) -> list:
-    """Collect CWE IDs from LLM security.findings[].cwe (v6.1-fix).
-
-    detect_cwe() only scans the source material for literal "CWE-XXX"; the LLM
-    may assign CWE IDs to findings that never appear in the source. Merge them
-    so audit.cwe_ids (and thus OWASP mapping + verdict) see the LLM's CWEs.
-    """
+    """Collect CWE IDs from LLM security.findings[].cwe (v6.1-fix)."""
     import re as _re
     if not stage2_result:
         return []
@@ -331,18 +289,11 @@ def map_cwe_to_owasp(cwe_ids: list, year: str = "2025") -> list:
     return owasp
 
 
-
-
 def sanitize_session_id(text: str, real_session_id: str) -> str:
-    """Replace hallucinated session_id (e.g. sess-2025-01-01-XXXX) with real one.
-
-    Dogfood fix: LLM in Stage 0 may hallucinate session_id
-    (copies example from training data). Overwrite with real one.
-    """
+    """Replace hallucinated session_id with real one."""
     import re as _re
     if not text or not real_session_id:
         return text
-    # Any sess-YYYY-MM-DD-XXXX where YYYY != current year
     text = _re.sub(r"sess-20\d{2}-\d{2}-\d{2}-[a-z0-9]+", real_session_id, text)
     return text
 
@@ -360,18 +311,11 @@ def run_audit(material: str, session_id: str, model: str = "harness",
               stage2_result: dict = None,
               final_markdown: str = "",
               llm_error: str = "") -> dict:
-    """Собирает audit-запись.
-
-    # P2-12-fix-risk-verdict: stage2_result используется для проверки
-    risk_nodes на priority='критично' -- fix v5.10.6.
-    """
+    """Собирает audit-запись."""
     pii = detect_pii(material)
     compliance = detect_compliance(material, pii)
     cwe_ids = detect_cwe(material)
-    # v6.1-fix: also collect CWE from LLM security.findings[].cwe.
     cwe_ids = cwe_ids + [c for c in collect_findings_cwe(stage2_result) if c not in cwe_ids]
-    # v5.11.2: consolidated verdict computation (verdict.py).
-    # Priority: emergency > pii/compliance/cwe > critical risk_nodes > critical security.
     risk_verdict, critique = compute_risk_verdict(
         stage2_result=stage2_result,
         pii=pii,
@@ -381,7 +325,6 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         final_markdown=final_markdown,
     )
     # v7.2: #2 evidence.python_run -> critique_verdict
-    # (do not override llm_error below)
     if not force_emergency and not llm_error:
         critique = compute_critique_verdict(
             context_thread=None,
@@ -390,15 +333,12 @@ def run_audit(material: str, session_id: str, model: str = "harness",
             cwe_ids=cwe_ids,
         )
     if llm_error:
-        # Fail closed: an analysis the model never saw is not SAFE, it is
-        # unavailable. Reporting SAFE here is how a broken harness produced a
-        # green report with an empty body.
         risk_verdict, critique = "REQUIRES_REVIEW", "ERROR"
     owasp_categories = map_cwe_to_owasp(cwe_ids, year="2025")
     exploitability = detect_exploitability(material)
-    exploitability = enrich_exploitability(material, exploitability)  # P2-7
-    dataflow_result = enrich_dataflow(material)  # P2-7b-fix-indent
-    anomaly_result = enrich_anomaly(material)  # P2-12-fix-indent
+    exploitability = enrich_exploitability(material, exploitability)
+    dataflow_result = enrich_dataflow(material)
+    anomaly_result = enrich_anomaly(material)
     provenance = get_provenance()
 
     audit = {
@@ -414,20 +354,18 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         "model": model,
         "critique_verdict": critique,
         "risk_verdict": risk_verdict,
-        # True when the model was never reached: keeps a broken harness from
-        # producing a green report with an empty body.
         "llm_error": bool(llm_error),
         "llm_error_text": (llm_error or "")[:500],
         "cwe_ids": cwe_ids,
         "owasp_categories": owasp_categories,
         "exploitability": exploitability,
-        "dataflow": dataflow_result.get("dataflow", {}),  # P2-7b
-        "anomaly": anomaly_result.get("anomaly", {}),  # P2-12
+        "dataflow": dataflow_result.get("dataflow", {}),
+        "anomaly": anomaly_result.get("anomaly", {}),
         "provenance": provenance,
         "pii_detected": bool(pii),
         "pii_details": pii,
-        **enrich_compliance(cwe_ids, compliance),  # P2-8
-        **enrich_runbook(cwe_ids),                 # P2-9
+        **enrich_compliance(cwe_ids, compliance),
+        **enrich_runbook(cwe_ids),
         "redaction_applied": bool(redaction_map),
         "redaction_map": redaction_map or {},
         "sast_findings": (sast_result or {}).get("total_findings", 0),
@@ -439,21 +377,32 @@ def run_audit(material: str, session_id: str, model: str = "harness",
         "sca_vulnerabilities": ((sca_result or {}).get("pip_audit") or {}).get("summary", {}).get("total", 0),
         "truncated": truncated,
         "original_size": original_size,
-        # === Web Search (Tavily) ===
         "web_search_used": ENABLE_WEB_SEARCH,
         "web_search_queries": web_search_queries or [],
         "web_search_credits": len(web_search_queries or []),
         "escalation_level": escalation_level,
     }
+    # v7.2: #4 negative_evidence
+    audit["negative_evidence"] = compute_negative_evidence(
+        cwe_ids=cwe_ids,
+        stage2_result=stage2_result,
+    )
+    # v7.2: #8 report_date / valid_until
     audit["report_date"] = datetime.now().isoformat()
     audit["valid_until"] = (datetime.now() + timedelta(days=90)).isoformat()
     audit["report_date_source"] = "system clock"
 
     audit_file = DATA_DIR / f"audit_{session_id}.json"
-    audit_file.write_text(
-        json.dumps(audit, indent=2, ensure_ascii=False),
-        encoding="utf-8",
-    )
+    try:
+        audit_file.write_text(
+            json.dumps(audit, indent=2, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except PermissionError as e:
+        import logging
+        logging.getLogger(__name__).warning(
+            "audit file write skipped: %s (%s)", audit_file, e
+        )
 
     return audit
 
@@ -479,25 +428,18 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
                  baseline_path: str = None,
                  save_baseline_path: str = None,
                  context_root: str = None) -> dict:
-    """Запускает полный pipeline Vishap.
-
-    session_suffix: опциональный суффикс для session_id (batch mode).
-    """
-    # Truncate if too large
+    """Запускает полный pipeline Vishap."""
     truncated = False
-    # Empty unless a stage fails at the LLM layer; the early-return path below
-    # also hands it to `run_audit`, so it must exist from the start.
     llm_error = ""
     original_size = len(material)
     session_id = f"sess-{datetime.now(UTC).strftime('%Y-%m-%d-%H%M%S')}{session_suffix}"
     _pipeline_start = time.time()
-    material_hash_full = compute_hash(material, context=f"{filename}:{session_id}")  # hash BEFORE truncation
+    material_hash_full = compute_hash(material, context=f"{filename}:{session_id}")
     if original_size > MAX_CHARS:
         material = material[:MAX_CHARS]
         truncated = True
         if verbose:
             print(f"[!] Материал {original_size} символов > {MAX_CHARS} — обрезан")
-
 
     if verbose:
         print("=== Vishap Pipeline ===")
@@ -508,13 +450,11 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
 
     if verbose:
         print("[Stage 0] Orchestrator...")
-    # === DOGFOOD P0: redact PII/secrets BEFORE any LLM call ===
     material_original = material
     material, redaction_map = redact_pii(material)
     if redaction_map:
         if verbose:
             print(f"[Redact] PII/secrets redacted: {redaction_map}")
-        # Audit on ORIGINAL material (for compliance verdict)
         original_audit_pii = detect_pii(material_original)
         original_audit_compliance = detect_compliance(material_original, original_audit_pii)
     else:
@@ -522,7 +462,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         original_audit_compliance = []
 
     stage0 = _timed_stage(log, "stage0", session_id, stage0_orchestrator, material, filename)
-    # Dogfood fix: always set real session_id (LLM may hallucinate or omit)
     if isinstance(stage0, dict):
         stage0["session_id"] = session_id
     route = stage0.get("route", [])
@@ -537,11 +476,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
 
     flags = stage0.get("flags", [])
 
-    # === GATE: EMERGENCY от LLM понижается до WARNING,
-    # если audit не нашёл РЕАЛЬНЫХ секретов/PII ===
     if "EMERGENCY_INTERRUPT" in flags:
-        # Dogfood fix: use material_original (before redaction) — otherwise
-        # PII/secrets are already replaced with <..._REDACTED> placeholders.
         _audit_material = material_original if "material_original" in dir() else material
         _pii = detect_pii(_audit_material)
         _comp = detect_compliance(_audit_material, _pii)
@@ -553,9 +488,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         )
         _has_secrets_or_pii = any(k in _pii for k in _secret_keys) or bool(_pii) or bool(_comp)
 
-        # Dogfood P0 fix: also check CRITICAL_RISK_PATTERNS (RCE, SQLi, path traversal).
-        # Before: GATE downgraded EMERGENCY if only SECRETS/PII were absent —
-        # which incorrectly silenced RCE, SQLi, path traversal.
         _critical_hits = []
         for _risk_name, _risk_pattern in CRITICAL_RISK_PATTERNS.items():
             if _risk_pattern.search(_audit_material):
@@ -582,7 +514,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         if verbose:
             print("[!] EMERGENCY_INTERRUPT — стоп (подтверждено audit)")
 
-        # Still run audit — compliance priority
         if verbose:
             print("[Audit] Сбор audit-записи (emergency)...")
         audit = run_audit(material_original, session_id, truncated=truncated, original_size=original_size, material_hash_full=material_hash_full, force_emergency=True, context=f"{filename}:{session_id}", redaction_map=redaction_map if "redaction_map" in dir() else {}, sast_result=_sast_result if "_sast_result" in dir() else None, sca_result=_sca_result if "_sca_result" in dir() else None, web_search_queries=(stage2.get("_web_search", {}) or {}).get("queries", []) if "stage2" in dir() else [], escalation_level=_safe_escalation_note(stage4) if "stage4" in dir() else "", stage2_result=stage2 if "stage2" in dir() else None, llm_error=llm_error)
@@ -604,31 +535,31 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         audit_block = (
             "\n\n[AUDIT_TRAIL]\n"
             f"generator: Vishap {__version__}\n"
-        f"audit_id: {audit['audit_id']}\n"
+            f"audit_id: {audit['audit_id']}\n"
             f"material_hash: {audit['material_hash']}\n"
-        f"material_hash_full: {audit.get('material_hash_full', audit['material_hash'])}\n"
+            f"material_hash_full: {audit.get('material_hash_full', audit['material_hash'])}\n"
             f"pii_detected: {str(audit['pii_detected']).lower()}\n"
             f"compliance_flags: {audit['compliance_flags']}\n"
-        f"compliance_controls: {audit.get('compliance_controls', {})}\n"
-        f"compliance_standards: {audit.get('compliance_standards', [])}\n"
+            f"compliance_controls: {audit.get('compliance_controls', {})}\n"
+            f"compliance_standards: {audit.get('compliance_standards', [])}\n"
             f"critique_verdict: {audit['critique_verdict']}\n"
-        f"risk_verdict: {audit.get('risk_verdict', 'SAFE')}\n"
-        f"cwe_ids: {audit.get('cwe_ids', [])}\n"
-        f"owasp_categories: {audit.get('owasp_categories', [])}\n"
-        f"exploitability_reachable: {audit.get('exploitability', {}).get('reachable', False)}\n"
-        f"exploitability_auth_required: {audit.get('exploitability', {}).get('auth_required', False)}\n"
-        f"exploitability_blast_radius: {audit.get('exploitability', {}).get('blast_radius', 'none')}\n"
-        f"exploitability_source_count: {audit.get('exploitability', {}).get('source_count', 0)}\n"
-        f"exploitability_path: {audit.get('exploitability', {}).get('path', [])}\n"
-        f"dataflow_path: {audit.get('dataflow', {}).get('path', [])}\n"
-        f"dataflow_source_count: {audit.get('dataflow', {}).get('source_count', 0)}\n"
-        f"anomaly_verdict: {audit.get('anomaly', {}).get('verdict', 'NORMAL')}\n"
-        f"anomaly_count: {audit.get('anomaly', {}).get('count', 0)}\n"
-        f"anomaly_method: {audit.get('anomaly', {}).get('method', 'none')}\n"
-        f"anomaly_top: {audit.get('anomaly', {}).get('anomalies', [])[:3]}\n"
-        f"provenance_source: {audit.get('provenance', {}).get('source', 'unknown')}\n"
-        f"provenance_commit: {audit.get('provenance', {}).get('git_commit_short', '')}\n"
-        f"llm_error: {str(audit.get('llm_error', False)).lower()}\n"
+            f"risk_verdict: {audit.get('risk_verdict', 'SAFE')}\n"
+            f"cwe_ids: {audit.get('cwe_ids', [])}\n"
+            f"owasp_categories: {audit.get('owasp_categories', [])}\n"
+            f"exploitability_reachable: {audit.get('exploitability', {}).get('reachable', False)}\n"
+            f"exploitability_auth_required: {audit.get('exploitability', {}).get('auth_required', False)}\n"
+            f"exploitability_blast_radius: {audit.get('exploitability', {}).get('blast_radius', 'none')}\n"
+            f"exploitability_source_count: {audit.get('exploitability', {}).get('source_count', 0)}\n"
+            f"exploitability_path: {audit.get('exploitability', {}).get('path', [])}\n"
+            f"dataflow_path: {audit.get('dataflow', {}).get('path', [])}\n"
+            f"dataflow_source_count: {audit.get('dataflow', {}).get('source_count', 0)}\n"
+            f"anomaly_verdict: {audit.get('anomaly', {}).get('verdict', 'NORMAL')}\n"
+            f"anomaly_count: {audit.get('anomaly', {}).get('count', 0)}\n"
+            f"anomaly_method: {audit.get('anomaly', {}).get('method', 'none')}\n"
+            f"anomaly_top: {audit.get('anomaly', {}).get('anomalies', [])[:3]}\n"
+            f"provenance_source: {audit.get('provenance', {}).get('source', 'unknown')}\n"
+            f"provenance_commit: {audit.get('provenance', {}).get('git_commit_short', '')}\n"
+            f"llm_error: {str(audit.get('llm_error', False)).lower()}\n"
         )
         emergency_md = emergency_md + audit_block
 
@@ -685,7 +616,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         print("[Stage 1] Scanner...")
     stage1 = _timed_stage(log, "stage1", session_id, stage1_scanner, material, {"stage0": stage0})
 
-    # === Dogfood P1: deterministic SAST/SCA before Stage 2 ===
     _lang = detect_language(filename)
     _sast_result = None
     _sca_result = None
@@ -761,13 +691,9 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     if stage3:
         context_5["stage3"] = stage3
     final_markdown = _timed_stage(log, "stage5", session_id, stage5_transmitter, material, context_5)
-    # Strip any [AUDIT_TRAIL]/[COMPLETENESS] from LLM output (pipeline adds its own)
     final_markdown = strip_llm_audit_blocks(final_markdown)
-    # Dogfood fix: sanitize hallucinated session_id in markdown
     final_markdown = sanitize_session_id(final_markdown, session_id)
 
-    # Fail closed: if no stage reached the model, say so instead of shipping an
-    # empty report that still claims SAFE.
     llm_error = (
         llm_error_of(stage0) or llm_error_of(stage2) or llm_error_of(stage4)
         or llm_error_of(final_markdown) or ""
@@ -775,11 +701,8 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     if llm_error:
         final_markdown = LLM_UNAVAILABLE_BANNER.format(error=llm_error.strip()[:600]) + final_markdown
 
-    # === AUDIT ===
     if verbose:
         print("[Audit] Сбор audit-записи...")
-    # force_emergency — только из stage0 (реальная безопасность)
-    # stage4.force_emergency — это escalation level (critical collisions)
     force_emergency = bool(stage0.get('force_emergency', False))
     _escalation = _safe_escalation_note(stage4)
 
@@ -823,7 +746,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     )
     final_markdown = final_markdown + audit_block
 
-    # === COMPLETENESS CHECK (fallback_check integration) ===
     required = REQUIRED_BLOCKS.get(level, [])
     missing = [b for b in required if b not in final_markdown]
     loss_pct = round(len(missing) / len(required) * 100, 1) if required else 0.0
@@ -833,7 +755,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         "missing": missing,
         "missing_count": len(missing),
         "loss_pct": loss_pct,
-        "material_complete": not truncated,   # deterministic: flag from run_pipeline
+        "material_complete": not truncated,
         "threshold": LOSS_THRESHOLD,
         "llm_error": bool(llm_error),
         "verdict": (
@@ -857,7 +779,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         f"verdict: {completeness['verdict']}\n"
     )
     final_markdown = final_markdown + completeness_block
-    final_markdown = final_markdown + format_runbook_md(audit)  # P2-9
+    final_markdown = final_markdown + format_runbook_md(audit)
 
     result = {
         "session_id": session_id,
@@ -871,7 +793,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         "stage4": stage4,
         "audit": audit,
         "completeness": completeness,
-            "critique_verdict": audit["critique_verdict"],
+        "critique_verdict": audit["critique_verdict"],
         "cost_usd": sum_stage_costs([stage0, stage1, stage2, stage3, stage4]),
         "final_markdown": final_markdown,
     }
@@ -887,7 +809,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         "material_hash": audit["material_hash"],
     })
 
-    # === Baseline (P0-1) ===
     apply_baseline(
         result,
         baseline_path=baseline_path,
@@ -896,7 +817,6 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         verbose=verbose,
     )
 
-    # === Baseline audit-trail (v5.9.0) ===
     _bs = result.get("baseline_stats") or {}
     if _bs.get("baseline_used") or _bs.get("baseline_saved"):
         _baseline_lines = ["\n\n[BASELINE]"]
@@ -935,11 +855,10 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
                               baseline_path: str = None,
                               save_baseline_path: str = None) -> dict:
     """Async pipeline."""
-    # Truncate if too large
     truncated = False
     original_size = len(material)
     session_id = f"sess-{datetime.now(UTC).strftime('%Y-%m-%d-%H%M%S')}{session_suffix}"
-    material_hash_full = compute_hash(material, context=f"{filename}:{session_id}")  # hash BEFORE truncation
+    material_hash_full = compute_hash(material, context=f"{filename}:{session_id}")
     if original_size > MAX_CHARS:
         material = material[:MAX_CHARS]
         truncated = True
@@ -948,7 +867,6 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
         async_stage0_orchestrator, async_stage1_scanner, async_stage2_analyst,
         async_stage3_researcher, async_stage4_synthesizer, async_stage5_transmitter,
     )
-    # === DOGFOOD P0: redact PII/secrets BEFORE any LLM call ===
     material_original = material
     material, redaction_map = redact_pii(material)
     if redaction_map:
@@ -959,7 +877,6 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
         original_audit_compliance = []
 
     stage0 = await async_stage0_orchestrator(material, filename)
-    # Dogfood fix: always set real session_id (LLM may hallucinate or omit)
     if isinstance(stage0, dict):
         stage0["session_id"] = session_id
     route = stage0.get("route", [])
@@ -979,20 +896,14 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     if stage3:
         context_5["stage3"] = stage3
     final_markdown = await async_stage5_transmitter(material, context_5)
-    # Strip any [AUDIT_TRAIL]/[COMPLETENESS] from LLM output (pipeline adds its own)
     final_markdown = strip_llm_audit_blocks(final_markdown)
-    # Dogfood fix: sanitize hallucinated session_id in markdown
     final_markdown = sanitize_session_id(final_markdown, session_id)
-    # Fail closed (same contract as the sync path): an analysis the model
-    # never saw must not report SAFE.
     llm_error = (
         llm_error_of(stage0) or llm_error_of(stage2) or llm_error_of(stage4)
         or llm_error_of(final_markdown) or ""
     )
     if llm_error:
         final_markdown = LLM_UNAVAILABLE_BANNER.format(error=llm_error.strip()[:600]) + final_markdown
-    # force_emergency — только из stage0 (реальная безопасность)
-    # stage4.force_emergency — это escalation level (critical collisions)
     force_emergency = bool(stage0.get('force_emergency', False))
     _escalation = _safe_escalation_note(stage4)
 
@@ -1031,7 +942,7 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     loss_pct = round(len(missing) / len(required) * 100, 1) if required else 0.0
     completeness = {"level": level, "required_count": len(required), "missing": missing,
                     "missing_count": len(missing), "loss_pct": loss_pct,
-                    "material_complete": not truncated,   # deterministic: flag from run_pipeline
+                    "material_complete": not truncated,
                     "threshold": LOSS_THRESHOLD,
                     "verdict": "ACCEPTABLE" if loss_pct <= LOSS_THRESHOLD else "INCOMPLETE"}
     final_markdown += (
@@ -1041,7 +952,7 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
         f"material_complete: {completeness.get('material_complete', not truncated)}\n"
         f"verdict: {completeness['verdict']}\n"
     )
-    final_markdown += format_runbook_md(audit)  # P2-9
+    final_markdown += format_runbook_md(audit)
     result = {"session_id": session_id, "timestamp": datetime.now(UTC).isoformat(),
               "filename": filename, "material_size": len(material), "stage0": stage0,
               "stage1": stage1, "stage2": stage2, "stage3": stage3, "stage4": stage4,
@@ -1052,7 +963,6 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
                "route": route, "material_size": len(material),
                "verdict": audit["critique_verdict"], "pii_detected": audit["pii_detected"],
                "material_hash": audit["material_hash"]})
-    # === Baseline (P0-1) ===
     apply_baseline(
         result,
         baseline_path=baseline_path,
@@ -1061,7 +971,6 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
         verbose=verbose,
     )
 
-    # === Baseline audit-trail (v5.9.0) ===
     _bs = result.get("baseline_stats") or {}
     if _bs.get("baseline_used") or _bs.get("baseline_saved"):
         _baseline_lines = ["\n\n[BASELINE]"]
@@ -1077,7 +986,6 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     result_file = DATA_DIR / f"result_{session_id}.json"
     result_file.write_text(json.dumps(result, ensure_ascii=False, indent=2), encoding="utf-8")
     return result
-
 
 
 def main():
