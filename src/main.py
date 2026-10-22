@@ -3,7 +3,6 @@
 Vishap — FastAPI приложение.
 """
 from contextlib import asynccontextmanager
-from pathlib import Path
 import json
 import os
 import threading

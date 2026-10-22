@@ -1,6 +1,6 @@
 # src/llm/__init__.py
 import os
-from . import client, harness_client
+from . import client, harness_client  # noqa: F401
 from .custom_client import CustomClient as CustomLLMClient
 
 

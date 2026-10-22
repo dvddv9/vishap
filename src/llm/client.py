@@ -11,7 +11,7 @@ from __future__ import annotations
 import os
 
 from src.llm._observe import observe_llm_result
-from src.llm import harness_client
+from src.llm import harness_client  # noqa: F401 — patched by tests
 
 NO_HARNESS_TEXT = (
     "[LLM error] DSH harness is unreachable: make sure the DSH app is running and "
