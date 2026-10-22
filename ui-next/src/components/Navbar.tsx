@@ -31,7 +31,7 @@ function NavbarInner({ auth }: { auth: AuthState }) {
           href="/"
           className="mr-3 flex items-center gap-2 text-base font-semibold tracking-tight text-slate-100 transition-colors hover:text-white"
         >
-          <span aria-hidden="true">рџђ‰</span>
+          <span aria-hidden="true">🐉</span>
           <span>Vishap</span>
         </Link>
 

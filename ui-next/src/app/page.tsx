@@ -107,7 +107,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
       <section className="flex flex-col gap-4">
         <h1 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
-          Vishap ÃƒÂ¢Ã¢â€šÂ¬Ã¢â‚¬Â security analysis for engineering materials
+          Vishap — security analysis for engineering materials
         </h1>
         <p className="max-w-2xl text-slate-400">
           Six-stage LLM pipeline with deterministic SAST/SCA, STRIDE threat modelling, an audit
@@ -118,7 +118,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
       {auth === "loading" ? (
         <div className="mt-8 flex items-center gap-2 text-sm text-slate-500">
           <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
-          Checking your sessionÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦
+          Checking your session…
         </div>
       ) : canAnalyze ? (
         <section className="mt-8 flex flex-wrap items-center gap-3">

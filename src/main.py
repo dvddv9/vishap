@@ -95,8 +95,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-cors_app = CORSMiddleware(
-    app,
+app.add_middleware(
+    CORSMiddleware,
     allow_origins=[
         "http://localhost:3000",
         "http://127.0.0.1:3000",
@@ -114,6 +114,7 @@ cors_app = CORSMiddleware(
     expose_headers=["X-Request-Id"],
     allow_private_network=True,
 )
+cors_app = app  # backward-compat alias for `uvicorn.run(cors_app, ...)`
 
 
 @app.middleware("http")
