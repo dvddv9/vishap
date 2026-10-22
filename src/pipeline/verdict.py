@@ -154,3 +154,53 @@ def compute_negative_evidence(cwe_ids, stage2_result):
             continue
         out.append({"cwe": cwe, "reason": _REASON_HINTS.get(cwe, "not found in material")})
     return out
+
+
+# === v7.2: #3 fidelity_index ==========================================
+def compute_fidelity_index(context_thread: dict | None,
+                           stage2_result: dict | None = None,
+                           cwe_ids: list | None = None) -> float | None:
+    """FI = (Evidence + Mechanism + Grounding + Calibration) / 4.
+
+    - Evidence: % findings with verified trace (python_run) 
+    - Mechanism: % findings with full trace (field + mutation + consequence)
+    - Grounding: % findings with CWE + known pattern
+    - Calibration: mean(level, priority, confidence) in 0..1
+
+    Returns None if not computable (no findings, no context).
+    """
+    ct = context_thread or {}
+    evidence = ct.get("evidence") or {}
+    python_run = bool(evidence.get("python_run"))
+
+    findings = list(ct.get("cwe_found") or [])
+    if stage2_result and isinstance(stage2_result, dict):
+        for rn in (stage2_result.get("risk_nodes") or []):
+            if isinstance(rn, dict):
+                findings.append(rn)
+
+    if not findings:
+        return None
+
+    def _has_trace(f):
+        return bool(f.get("trace") or f.get("mechanism") or f.get("verified"))
+    def _has_cwe(f):
+        return bool(f.get("cwe"))
+    def _is_verified(f):
+        return bool(f.get("verified")) or python_run
+
+    total = len(findings) or 1
+    evidence_score = sum(1 for f in findings if isinstance(f, dict) and _is_verified(f)) / total
+    mechanism_score = sum(1 for f in findings if isinstance(f, dict) and _has_trace(f)) / total
+    grounding_score = sum(1 for f in findings if isinstance(f, dict) and _has_cwe(f)) / total
+    if len(ct.get("checked") or []) < 5:
+        grounding_score = max(0.0, grounding_score - 0.1)
+
+    d = ct.get("decisions") or {}
+    level = 1.0 if d.get("level") else 0.0
+    priority = 1.0 if d.get("priority") else 0.0
+    confidence = float(d.get("confidence") or 0.0)
+    calibration = (level + priority + confidence) / 3
+
+    fi = (evidence_score + mechanism_score + grounding_score + calibration) / 4
+    return round(fi, 2)

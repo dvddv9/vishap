@@ -43,6 +43,7 @@ from src.pipeline.verdict import (
     compute_risk_verdict,  # v5.11.2: consolidated verdict
     compute_critique_verdict,  # v7.2: #2 evidence.python_run -> critique
     compute_negative_evidence,  # v7.2: #4 negative_evidence
+    compute_fidelity_index,  # v7.2: #3
 )
 from src.version import __version__
 
@@ -392,6 +393,14 @@ def run_audit(material: str, session_id: str, model: str = "harness",
     audit["valid_until"] = (datetime.now() + timedelta(days=90)).isoformat()
     audit["report_date_source"] = "system clock"
 
+    # v7.2: #3 fidelity_index
+    audit["fidelity_index"] = compute_fidelity_index(
+        context_thread=None,
+        stage2_result=stage2_result,
+        cwe_ids=cwe_ids,
+    )
+    if audit["fidelity_index"] is None:
+        audit["fidelity_index_note"] = "not provided (VERIFY: not computed)"
     audit_file = DATA_DIR / f"audit_{session_id}.json"
     try:
         audit_file.write_text(
