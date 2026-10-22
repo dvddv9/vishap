@@ -66,7 +66,8 @@ def test_no_provider_string_mentions_the_fix():
     assert "HARNESS_TOKEN" in client.NO_HARNESS_TEXT
 
 
-def test_async_chat_uses_harness_client():
+def test_async_chat_uses_harness_client(monkeypatch):
+    monkeypatch.setenv("VISHAP_LLM_PROVIDER", "harness")
     from src.llm import async_client
     import asyncio
 

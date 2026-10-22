@@ -15,10 +15,22 @@ from src.llm.client import NO_HARNESS_TEXT
 async def async_chat(system: str, user: str,
                      temperature: float = 0.0,
                      max_tokens: int = 2000) -> dict:
-    """Асинхронный вызов LLM через DSH harness. Аналог chat()."""
+    """Async LLM entry point — custom (DeepSeek) or DSH harness.
+
+    Mirrors `src.llm.client.chat`: provider is resolved via
+    `_resolve_provider()` (VISHAP_LLM_PROVIDER=auto|custom|harness).
+    """
+    from src.llm.client import _resolve_provider, _chat_custom
+    provider = _resolve_provider()
+    loop = asyncio.get_event_loop()
+
+    if provider == "custom":
+        return await loop.run_in_executor(
+            None, lambda: _chat_custom(system, user, temperature, max_tokens),
+        )
+
     try:
         h = harness_client.HarnessClient()
-        loop = asyncio.get_event_loop()
         result = await loop.run_in_executor(None, lambda: h.chat(user, system))
         return observe_llm_result(result)
     except Exception as e:
