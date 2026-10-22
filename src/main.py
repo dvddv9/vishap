@@ -17,6 +17,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
 from src.config import APP_NAME, PORT, DATA_DIR, validate_config
+from src.version import __version__
 from src.observability.logging import (
     setup_logging,
     get_logger,
@@ -239,9 +240,13 @@ class InvoiceRequest(BaseModel):
 async def root():
     return {
         "app": APP_NAME,
-        "version": "5.9.6",
+        "version": __version__,
         "docs": "/docs",
-        "endpoints": ["/analyze", "/history", "/health"],
+        "endpoints": [
+            "/analyze", "/analyze/async", "/analyze/batch", "/analyze/sarif",
+            "/history", "/report/{job_id}", "/report/{job_id}/download",
+            "/llm/config", "/health", "/docs",
+        ],
     }
 
 
