@@ -1,6 +1,6 @@
 ﻿# -*- coding: utf-8 -*-
 """
-Vishap Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ FastAPI Р В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™.
+Vishap — FastAPI приложение.
 """
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -49,18 +49,14 @@ from src.api.webhooks import notify_webhook
 from datetime import UTC
 from src.tools.sarif import to_sarif
 from src.llm.harness_launcher import autostart_enabled, ensure_harness, status as harness_status
+from src.api import llm_config
 
 
 def _start_harness_in_background() -> None:
-    """Make the harness reachable without delaying API startup.
-
-    The harness is the only LLM path, so a stale one would turn every analysis
-    into `[LLM error]`. `ensure_harness()` probes first and only spawns `dsh web`
-    when needed; it runs in a thread because startup can take up to ~30s.
-    """
+    """Make the harness reachable without delaying API startup."""
     if not autostart_enabled():
         return
-    if "PYTEST_CURRENT_TEST" in os.environ:  # never spawn a real harness in tests
+    if "PYTEST_CURRENT_TEST" in os.environ:
         return
 
     def _run() -> None:
@@ -71,47 +67,54 @@ def _start_harness_in_background() -> None:
                 print(f"[harness] ready at {result['url']} ({how})")
             else:
                 print(f"[harness] not reachable: {result['error']}")
-        except Exception as e:  # never take the API down over the LLM
+        except Exception as e:
             print(f"[harness] autostart failed: {type(e).__name__}: {e}")
 
     threading.Thread(target=_run, name="harness-autostart", daemon=True).start()
 
 
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Fail fast: missing DATABASE_URL / STRIPE_SECRET_KEY / CLERK_SECRET_KEY
-    # stops the server here instead of surfacing as a 500 on the first request.
-    # VISHAP_DEV=true downgrades this to a warning.
     validate_config()
-    print(f"=== {APP_NAME} API Р В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В РЎвЂњР В Р Р‹Р В Р РЏ ===")
-    print(f"Р В Р’В Р РЋРІР‚С”Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СњР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р В РІР‚В  Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р РЋРІР‚СљР В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’Вµ: http://localhost:{PORT}/docs")
+    print(f"=== {APP_NAME} API запускается ===")
+    print(f"Документация: http://localhost:{PORT}/docs")
     _start_harness_in_background()
     yield
-    print(f"=== {APP_NAME} API Р В Р’В Р РЋРІР‚СћР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р В РІР‚В¦ ===")
+    print(f"=== {APP_NAME} API останавливается ===")
 
 
-# structlog: pretty in dev, JSON in prod (LOG_FORMAT=json)
 setup_logging()
 log = get_logger(__name__)
-
-# OpenTelemetry tracing: fail-open if OTel is missing/disabled.
 setup_tracing()
 
 
 app = FastAPI(
     title=f"{APP_NAME} API",
-    description="Vishap V6.0.3 Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ 6-Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚ВР В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ LLM-Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™ Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В° Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°",
+    description="Vishap V6.0.3 — 6-стадийный LLM-конвейер для анализа материалов",
     version="7.0.1",
     lifespan=lifespan,
 )
 
-# CORS is applied as `cors_app` right before `__main__`, wrapping the *entire*
-# stack (including ServerErrorMiddleware). It has to be an explicit outer wrap:
-# `app.add_middleware` places CORS *inside* ServerErrorMiddleware, so an
-# unhandled exception (a 500) would escape with no `Access-Control-Allow-Origin`
-# and the desktop webview would report every failure as "blocked by CORS policy".
-# See `cors_app = CORSMiddleware(app, ...)` at the bottom.
+cors_app = CORSMiddleware(
+    app,
+    allow_origins=[
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+        "tauri://localhost",
+        "http://tauri.localhost",
+        "https://tauri.localhost",
+    ],
+    allow_origin_regex=(
+        r"^(https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
+        r"|tauri://localhost|https?://tauri\.localhost)$"
+    ),
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
+    allow_headers=["Content-Type", "X-API-Key", "Authorization", "X-Requested-With"],
+    expose_headers=["X-Request-Id"],
+    allow_private_network=True,
+)
+
 
 @app.middleware("http")
 async def log_requests(request, call_next):
@@ -145,13 +148,13 @@ async def log_requests(request, call_next):
         clear_context()
 
 
-# === Pydantic-Р В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋР’ВР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“ ===
+# === Pydantic-схемы ===
 
 class AnalyzeRequest(BaseModel):
     force: bool = False
-    material: str = Field(..., description="Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В, spec, logs Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р Р†Р вЂљР Р‹Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚Сћ Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В·Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ°")
-    filename: str = Field(default="input.txt", description="Р В Р’В Р вЂ™Р’ВР В Р’В Р РЋР’ВР В Р Р‹Р В Р РЏ Р В Р Р‹Р Р†Р вЂљРЎвЂєР В Р’В Р вЂ™Р’В°Р В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В° (Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р РЏ Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°)")
-    verbose: bool = Field(default=False, description="Р В Р’В Р РЋРЎСџР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚ВР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В±Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚В Р В Р’В Р В РІР‚В  Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р В РІР‚В Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’Вµ")
+    material: str = Field(..., description="Материал: код, spec, logs и т.п.")
+    filename: str = Field(default="input.txt", description="Имя файла")
+    verbose: bool = Field(default=False, description="Подробный вывод")
 
 
 class AnalyzeResponse(BaseModel):
@@ -189,14 +192,13 @@ class HistoryItem(BaseModel):
 
 
 class BatchItem(BaseModel):
-    material: str = Field(..., description="Р В Р’В Р РЋРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В / spec / logs")
-    filename: str = Field(default="input.txt", description="Р В Р’В Р вЂ™Р’ВР В Р’В Р РЋР’ВР В Р Р‹Р В Р РЏ Р В Р Р‹Р Р†Р вЂљРЎвЂєР В Р’В Р вЂ™Р’В°Р В Р’В Р Р†РІР‚С›РІР‚вЂњР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В°")
+    material: str = Field(..., description="Материал / spec / logs")
+    filename: str = Field(default="input.txt", description="Имя файла")
 
 
 class BatchRequest(BaseModel):
-    items: list[BatchItem] = Field(..., description="Р В Р’В Р В Р вЂ№Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚Сњ Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В ")
-    max_concurrent: int = Field(default=3, ge=1, le=10,
-                                description="Р В Р’В Р РЋРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚СњР В Р Р‹Р В РЎвЂњ. Р В Р’В Р РЋРІР‚вЂќР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљР’В¦ LLM-Р В Р’В Р В РІР‚В Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’В·Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В  (1..10)")
+    items: list[BatchItem] = Field(..., description="Список материалов")
+    max_concurrent: int = Field(default=3, ge=1, le=10, description="Параллелизм")
 
 
 class BatchResponseItem(BaseModel):
@@ -216,13 +218,16 @@ class BatchResponse(BaseModel):
     max_concurrent: int
 
 
-class ModeRequest(BaseModel):
-    mode: str = Field(..., description="auto / cloud / local")
+class CheckoutRequest(BaseModel):
+    email: str
+    success_url: str
+    cancel_url: str
 
 
-class ModeResponse(BaseModel):
-    mode: str
-    valid_modes: list[str]
+class InvoiceRequest(BaseModel):
+    customer_id: str
+    description: str
+    amount_cents: int
 
 
 # === Endpoints ===
@@ -239,10 +244,6 @@ async def root():
 
 @app.get("/health")
 async def health():
-    # `harness` is the only LLM path: report it here so a dead harness is visible
-    # from the health check instead of surfacing as "analysis returned nothing".
-    # `harness_status()` is cached (refreshed by the startup autostart), so this
-    # endpoint stays instant.
     return {
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
@@ -250,48 +251,26 @@ async def health():
     }
 
 
-
-class ModeRequest(BaseModel):
-    mode: Literal["harness", "deepseek"]
-
-
 @app.get("/harness/status")
 async def harness_status_endpoint():
-    """Fresh probe of the only LLM path.
-
-    Short timeout (0.3 s) so the navbar can poll it without blocking.
-    """
     return harness_status(fresh=True)
 
 
 def _ensure_harness_safely() -> None:
-    """Start the harness, never letting the failure escape the background task."""
     try:
         ensure_harness()
-    except Exception as e:  # the button already got its 202; log and move on
+    except Exception as e:
         print(f"[harness] start failed: {type(e).__name__}: {e}")
 
 
 @app.post("/harness/start", status_code=202)
 def harness_start(background: BackgroundTasks):
-    """Start ``dsh web`` when it is not answering.
-
-    Returns immediately (``202``) and runs `ensure_harness()` in the background Р Р†Р вЂљРІР‚Сњ
-    starting a harness can take ~30 s, and the caller is a UI button. The client
-    polls `/harness/status` until `reachable` flips to true.
-    """
     background.add_task(_ensure_harness_safely)
     return {"status": "starting", "harness": harness_status()}
 
 
 @app.delete("/status/{job_id}", dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
 async def delete_status(job_id: str, tenant: str = Depends(current_tenant)):
-    """Forget a job Р Р†Р вЂљРІР‚Сњ what the UI's delete button calls.
-
-    Removes the job record (status/report lookups then answer 404). The Markdown
-    file already written under `data/` is left alone: the audit trail is
-    append-only, and `/report/{id}/download` is the export path.
-    """
     with tenant_scope(tenant):
         deleted = await delete_job_async(job_id)
     if not deleted:
@@ -309,31 +288,16 @@ async def metrics():
 
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
-    """GitHub App webhook: PR opened -> analyze diff -> comment."""
     return await handle_webhook(request)
-
-
-class CheckoutRequest(BaseModel):
-    email: str
-    success_url: str
-    cancel_url: str
 
 
 @app.post("/billing/checkout")
 async def checkout(req: CheckoutRequest):
-    """Create a Stripe Checkout Session (subscription)."""
     return create_checkout_session(req.email, req.success_url, req.cancel_url)
-
-
-class InvoiceRequest(BaseModel):
-    customer_id: str
-    description: str
-    amount_cents: int
 
 
 @app.post("/billing/invoice", dependencies=[Depends(current_user)])
 async def create_invoice_endpoint(req: InvoiceRequest):
-    """Create a one-off enterprise invoice (Clerk auth required)."""
     if req.amount_cents <= 0:
         raise HTTPException(status_code=400, detail="amount_cents must be positive")
     return create_invoice(req.customer_id, req.description, req.amount_cents)
@@ -341,39 +305,33 @@ async def create_invoice_endpoint(req: InvoiceRequest):
 
 @app.get("/billing/products")
 async def billing_products():
-    """Active Stripe prices, or an empty list when Stripe is not configured."""
     return list_prices()
 
 
 @app.get("/api/me/data")
 async def export_my_data(user: dict = Depends(current_user)):
-    """GDPR: export every record stored for the caller's tenant."""
     with tenant_scope(user["tenant_id"]):
         return await export_user_data(user["tenant_id"])
 
 
 @app.delete("/api/me")
 async def delete_my_account(user: dict = Depends(current_user)):
-    """GDPR: erase every record stored for the caller's tenant."""
     with tenant_scope(user["tenant_id"]):
         return await delete_user_data(user["tenant_id"])
 
 
 @app.get("/auth/sso/login")
 async def sso_login(tenant: str = Query(..., description="Tenant/org id requesting SSO")):
-    """SAML SSO login (stub: requires Clerk Enterprise plan)."""
     return await saml_login(tenant)
 
 
 @app.post("/auth/sso/callback")
 async def sso_callback(payload: dict):
-    """SAML assertion callback (stub: requires Clerk Enterprise plan)."""
     return await saml_callback(payload)
 
 
 @app.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    """Stripe webhook: verify signature, handle subscription events."""
     payload = await request.body()
     sig = request.headers.get("Stripe-Signature", "")
     return await handle_stripe_webhook_async(payload, sig)
@@ -382,16 +340,9 @@ async def stripe_webhook(request: Request):
 @app.post("/analyze", response_model=AnalyzeResponse, dependencies=[Depends(verify_api_key), Depends(rate_limit_analyze)])
 @traced("analyze")
 async def analyze(req: AnalyzeRequest):
-    """
-    Р В Р’В Р Р†Р вЂљРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ pipeline Vishap V5.9.
-    
-    Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В: Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В / spec / logs.
-    Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В: Р В Р Р‹Р Р†Р вЂљРЎвЂєР В Р’В Р РЋРІР‚ВР В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ Markdown-Р В Р’В Р РЋРІР‚СћР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљР Р‹Р В Р Р‹Р Р†Р вЂљР’ВР В Р Р‹Р Р†Р вЂљРЎв„ў + Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р’В Р СћРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р вЂ™Р’Вµ.
-    """
     if not req.material.strip():
-        raise HTTPException(status_code=400, detail="material Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р РЋР’В")
+        raise HTTPException(status_code=400, detail="material не может быть пустым")
 
-    # === Idempotency: check if same material already analyzed ===
     from src.pipeline.orchestrator import compute_hash
     from src.storage.history import find_done_by_hash
 
@@ -484,29 +435,19 @@ async def analyze(req: AnalyzeRequest):
 
 @app.post("/analyze/secure", dependencies=[Depends(current_user)])
 async def analyze_secure(req: AnalyzeRequest, user: dict = Depends(current_user)):
-    """Analyze with Clerk JWT auth (multi-tenant); /analyze keeps API-key auth."""
     with tenant_scope(user["tenant_id"]):
         return await analyze(req)
 
 
 @app.post("/analyze/batch", response_model=BatchResponse, dependencies=[Depends(verify_api_key), Depends(rate_limit_analyze)])
 async def analyze_batch(req: BatchRequest):
-    """
-    Р В Р’В Р РЋРЎСџР В Р’В Р вЂ™Р’В°Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р В РІР‚В¦Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В· Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’В° Р В Р’В Р РЋР’ВР В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В .
-
-    Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В: Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚Сњ {material, filename}.
-    Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљР’В¦Р В Р’В Р РЋРІР‚СћР В Р’В Р СћРІР‚В: Р В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚СћР В Р’В Р РЋРІР‚Сњ Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’ВµР В Р’В Р вЂ™Р’В·Р В Р Р‹Р РЋРІР‚СљР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р’В Р В РІР‚В  Р В Р’В Р В РІР‚В  Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р’В Р РЋР’В Р В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р Р‹Р В РІР‚С™Р В Р Р‹Р В Р РЏР В Р’В Р СћРІР‚ВР В Р’В Р РЋРІР‚СњР В Р’В Р вЂ™Р’Вµ.
-
-    max_concurrent: 1..10 (Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚Сћ Р В Р Р‹Р РЋРІР‚СљР В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р Р‹Р Р†Р вЂљР Р‹Р В Р’В Р вЂ™Р’В°Р В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„– 3). Р В Р’В Р Р†Р вЂљР’ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р Р‹Р Р†РІР‚С™Р’В¬Р В Р’В Р вЂ™Р’Вµ 10 Р В Р вЂ Р В РІР‚С™Р Р†Р вЂљРЎСљ Р В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚Сњ harness overload.
-    """
     if not req.items:
-        raise HTTPException(status_code=400, detail="items Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р РЋР’В")
-
+        raise HTTPException(status_code=400, detail="items не может быть пустым")
     for i, item in enumerate(req.items):
         if not item.material.strip():
             raise HTTPException(
                 status_code=400,
-                detail=f"items[{i}].material Р В Р’В Р В РІР‚В¦Р В Р’В Р вЂ™Р’Вµ Р В Р’В Р РЋР’ВР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В¶Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р вЂ™Р’В±Р В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р В Р вЂ° Р В Р’В Р РЋРІР‚вЂќР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р Р‹Р Р†Р вЂљРІвЂћвЂ“Р В Р’В Р РЋР’В",
+                detail=f"items[{i}].material не может быть пустым",
             )
 
     materials = [(item.material, item.filename) for item in req.items]
@@ -551,12 +492,10 @@ async def analyze_batch(req: BatchRequest):
 
 @app.post("/analyze/sarif", dependencies=[Depends(verify_api_key), Depends(rate_limit_analyze)])
 async def analyze_sarif(req: AnalyzeRequest):
-    """Run analysis and return SARIF 2.1.0 JSON (for GitHub Code Scanning)."""
     result = await analyze(req)
 
     audit = result.audit.model_dump() if hasattr(result, "audit") else {}
 
-    # Extract SAST/SCA from audit if present (dict)
     sast_result = None
     sca_result = None
     if isinstance(audit, dict):
@@ -580,7 +519,6 @@ async def analyze_sarif(req: AnalyzeRequest):
 
 @app.get("/history", response_model=list[HistoryItem])
 async def history(limit: int = 20, tenant: str = Depends(current_tenant)):
-    """Р В Р’В Р Р†Р вЂљРІвЂћСћР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В·Р В Р’В Р В РІР‚В Р В Р Р‹Р В РІР‚С™Р В Р’В Р вЂ™Р’В°Р В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’В»Р В Р’В Р вЂ™Р’ВµР В Р’В Р СћРІР‚ВР В Р’В Р В РІР‚В¦Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’Вµ N Р В Р’В Р вЂ™Р’В·Р В Р’В Р вЂ™Р’В°Р В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р’В Р вЂ™Р’ВµР В Р’В Р Р†РІР‚С›РІР‚вЂњ Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚Сћ tenant."""
     with tenant_scope(tenant):
         items = load_history(tenant_id=tenant)
         return [
@@ -600,7 +538,6 @@ async def history(limit: int = 20, tenant: str = Depends(current_tenant)):
 
 @app.post("/history/clear", dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
 async def history_clear(tenant: str = Depends(current_tenant)):
-    """Р В Р’В Р РЋРІР‚С”Р В Р Р‹Р Р†Р вЂљР Р‹Р В Р’В Р РЋРІР‚ВР В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’В°Р В Р’В Р вЂ™Р’ВµР В Р Р‹Р Р†Р вЂљРЎв„ў Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РЎвЂњР В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р Р‹Р В РІР‚С™Р В Р’В Р РЋРІР‚ВР В Р Р‹Р В РІР‚в„– Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р РЋРІР‚СћР В Р’В Р вЂ™Р’В»Р В Р Р‹Р В Р вЂ°Р В Р’В Р РЋРІР‚СњР В Р’В Р РЋРІР‚Сћ Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚Сћ tenant."""
     from src.storage.history import clear_history
 
     with tenant_scope(tenant):
@@ -617,7 +554,6 @@ async def audit_export(
     limit: int = Query(DEFAULT_LIMIT, ge=1, le=MAX_LIMIT),
     tenant: str = Depends(current_tenant),
 ):
-    """Р В Р’В Р вЂ™Р’В­Р В Р’В Р РЋРІР‚СњР В Р Р‹Р В РЎвЂњР В Р’В Р РЋРІР‚вЂќР В Р’В Р РЋРІР‚СћР В Р Р‹Р В РІР‚С™Р В Р Р‹Р Р†Р вЂљРЎв„ў audit trail Р В Р Р‹Р Р†Р вЂљРЎв„ўР В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚СњР В Р Р‹Р РЋРІР‚СљР В Р Р‹Р Р†Р вЂљР’В°Р В Р’В Р вЂ™Р’ВµР В Р’В Р РЋРІР‚вЂњР В Р’В Р РЋРІР‚Сћ tenant Р В Р’В Р В РІР‚В  CSV Р В Р’В Р РЋРІР‚ВР В Р’В Р вЂ™Р’В»Р В Р’В Р РЋРІР‚В JSON."""
     with tenant_scope(tenant):
         return await export_audit(
             format=format,
@@ -628,12 +564,7 @@ async def audit_export(
         )
 
 
-# ============================================================
-# v6.0: Async API -- job-based analysis
-# ============================================================
-
 async def _run_job_async(job_id: str, req: "AnalyzeRequest", tenant: str):
-    """Run pipeline in background, update job store."""
     from src.pipeline.orchestrator import run_pipeline_async
     with tenant_scope(tenant):
         await update_job_async(
@@ -651,7 +582,6 @@ async def _run_job_async(job_id: str, req: "AnalyzeRequest", tenant: str):
                 result=result,
                 finished_at=datetime.now(UTC).isoformat(),
             )
-            # Downloadable copy; fail-open so a disk problem cannot fail the job.
             save_report(job_id, (result or {}).get("final_markdown"))
             await notify_webhook(
                 "job.completed", {"job_id": job_id, "tenant_id": tenant, "status": "done"}
@@ -673,7 +603,6 @@ async def _run_job_async(job_id: str, req: "AnalyzeRequest", tenant: str):
 @traced("analyze_async")
 async def analyze_async(req: "AnalyzeRequest", background: BackgroundTasks,
                         tenant: str = Depends(current_tenant)):
-    """Create async job -- returns job_id immediately."""
     with tenant_scope(tenant):
         job_id = await create_job_async(
             filename=req.filename or "unknown", tenant_id=tenant
@@ -690,7 +619,6 @@ async def analyze_async(req: "AnalyzeRequest", background: BackgroundTasks,
         if broker_available():
             run_analysis_task.delay(job_id, req.material, req.filename or "unknown", tenant)
         else:
-            # v6.1: broker unavailable -> in-process fallback (graceful degradation)
             log.warning("celery_broker_unavailable", job_id=job_id)
             background.add_task(_run_job_async, job_id, req, tenant)
         return {"job_id": job_id, "status": "queued"}
@@ -698,7 +626,6 @@ async def analyze_async(req: "AnalyzeRequest", background: BackgroundTasks,
 
 @app.get("/status/{job_id}")
 async def get_status(job_id: str, tenant: str = Depends(current_tenant)):
-    """Get job status."""
     with tenant_scope(tenant):
         job = await get_job_async(job_id)
         if not job:
@@ -716,7 +643,6 @@ async def get_status(job_id: str, tenant: str = Depends(current_tenant)):
 
 @app.get("/report/{job_id}")
 async def get_report(job_id: str, tenant: str = Depends(current_tenant)):
-    """Get job result. 409 if not done."""
     with tenant_scope(tenant):
         job = await get_job_async(job_id)
         if not job:
@@ -731,15 +657,6 @@ async def get_report(job_id: str, tenant: str = Depends(current_tenant)):
 
 @app.get("/report/{job_id}/download")
 async def download_report(job_id: str, tenant: str = Depends(current_tenant)):
-    """Download the Markdown report of a finished job.
-
-    Two sources, in order: the `.md` file on disk, then `final_markdown` inside
-    the job result. The second one matters because the file is written by
-    whatever process ran the pipeline Р Р†Р вЂљРІР‚Сњ with a Celery worker that is a different
-    process, possibly on a different host with a different data directory.
-    Serving from the job result means a finished job is always downloadable, and
-    the missing file simply gets repaired for next time.
-    """
     with tenant_scope(tenant):
         job = await get_job_async(job_id)
         if not job:
@@ -760,7 +677,6 @@ async def download_report(job_id: str, tenant: str = Depends(current_tenant)):
         markdown = (job.get("result") or {}).get("final_markdown")
         if markdown:
             if path is not None:
-                # Repair the on-disk copy; fail-open, the response does not wait on it.
                 save_report(job_id, markdown)
             return Response(
                 content=markdown,
@@ -771,42 +687,12 @@ async def download_report(job_id: str, tenant: str = Depends(current_tenant)):
         raise HTTPException(status_code=404, detail="report not found")
 
 
-# CORS Р Р†Р вЂљРІР‚Сњ applied as an explicit outer wrap so it also covers error responses.
-#
-# Loopback UIs only: Next dev (:3000), the Tauri desktop shell
-# (`http://tauri.localhost` / `tauri://localhost`), plus any loopback port via the
-# regex. `allow_private_network` answers the Private Network Access preflight the
-# desktop webview sends (its origin is the public address space, `127.0.0.1` is
-# local) Р Р†Р вЂљРІР‚Сњ see the notes in the CORS comment at the top.
-#
-# `app` stays the FastAPI instance (tests import it directly); `cors_app` is what
-# the server actually runs. The outer wrap is what puts `Access-Control-Allow-Origin`
-# on unhandled-500 responses too Р Р†Р вЂљРІР‚Сњ a bare 500 from ServerErrorMiddleware would
-# otherwise have no CORS header and the webview would report "blocked by CORS".
-cors_app = CORSMiddleware(
-    app,
-    allow_origins=[
-        "http://localhost:3000",
-        "http://127.0.0.1:3000",
-        "tauri://localhost",
-        "http://tauri.localhost",
-        "https://tauri.localhost",
-    ],
-    allow_origin_regex=(
-        r"^(https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
-        r"|tauri://localhost|https?://tauri\.localhost)$"
-    ),
-    allow_credentials=True,
-    allow_methods=["GET", "POST", "OPTIONS", "PUT", "PATCH", "DELETE"],
-    allow_headers=["Content-Type", "X-API-Key", "Authorization", "X-Requested-With"],
-    expose_headers=["X-Request-Id"],
-    allow_private_network=True,
-)
+# === Регистрация LLM-конфигурации (перенесено сюда, чтобы точно работало) ===
+app.include_router(llm_config.router)
 
 
 if __name__ == "__main__":
     import uvicorn
-    # Dogfood P0 fix: if no API key set, bind only to 127.0.0.1.
     host = "0.0.0.0" if is_auth_enabled() else "127.0.0.1"
     print(f"[Auth] API key {'set' if is_auth_enabled() else 'NOT set'} -- binding to {host}")
     uvicorn.run(
@@ -815,9 +701,3 @@ if __name__ == "__main__":
         port=PORT,
         reload=False,
     )
-
-
-
-
-
-
