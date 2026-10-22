@@ -718,6 +718,15 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         print(f"  → risk nodes: {len(risk_nodes)}")
         print()
 
+    # v7.2: #1 context_thread (async, after stage2)
+    _rn = stage2.get("risk_nodes", []) if isinstance(stage2, dict) else []
+    context_thread["cwe_found"] = list(_rn)
+    context_thread["decisions"]["level"] = level
+    context_thread["decisions"]["priority"] = "критично" if any(
+        str(r.get("priority", "")).lower() in ("критично", "critical")
+        for r in _rn if isinstance(r, dict)
+    ) else "важно"
+    context_thread["decisions"]["confidence"] = 0.8
     stage3 = None
     if research_first:
         if verbose:
@@ -914,6 +923,19 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     original_size = len(material)
     session_id = f"sess-{datetime.now(UTC).strftime('%Y-%m-%d-%H%M%S')}{session_suffix}"
     material_hash_full = compute_hash(material, context=f"{filename}:{session_id}")
+    # v7.2: #1 context_thread (async)
+    context_thread = {
+        "material_hash": material_hash_full,
+        "metrics": {},
+        "cwe_found": [],
+        "evidence": {"python_run": False, "tests_run": False, "ast_parsed": False},
+        "decisions": {"level": None, "priority": None, "confidence": None, "fix_class": None},
+        "assumptions": [],
+        "open_questions": [],
+        "checked": [],
+        "not_found": [],
+        "negative_evidence": [],
+    }
     if original_size > MAX_CHARS:
         material = material[:MAX_CHARS]
         truncated = True
@@ -938,6 +960,10 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     level = stage0.get("level", "D3")
     research_first = stage0.get("research_first", False)
     stage1 = await async_stage1_scanner(material, {"stage0": stage0})
+    # v7.2: #1 context_thread (async, after stage1)
+    context_thread["metrics"] = stage1.get("metrics", {}) if isinstance(stage1, dict) else {}
+    context_thread["evidence"]["python_run"] = True
+    context_thread["evidence"]["ast_parsed"] = True
     stage2 = await async_stage2_analyst(material, {"stage0": stage0, "stage1": stage1})
     stage3 = None
     if research_first:
