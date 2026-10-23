@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
 """Single source of truth for version (synced with pyproject.toml)."""
-__version__ = "7.2.2"
+__version__ = "7.2.3"
