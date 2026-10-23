@@ -90,10 +90,13 @@ setup_tracing()
 
 app = FastAPI(
     title=f"{APP_NAME} API",
-    description="Vishap V6.0.3 — 6-стадийный LLM-конвейер для анализа материалов",
-    version="7.2.2",
+    description="Vishap — 6-стадийный LLM-конвейер для анализа материалов",
+    version=__version__,
     lifespan=lifespan,
 )
+
+import asyncio as _asyncio
+_analyze_locks: dict[str, _asyncio.Lock] = {}
 
 app.add_middleware(
     CORSMiddleware,
@@ -296,6 +299,12 @@ async def metrics():
 
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
+    import os
+    _secret = os.getenv("GITHUB_WEBHOOK_SECRET", "")
+    _sig = request.headers.get("X-Hub-Signature-256", "")
+    if not _secret or not _sig or not verify_webhook_signature(await request.body(), _sig, _secret):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="invalid GitHub signature")
     return await handle_webhook(request)
 
 
@@ -335,11 +344,31 @@ async def sso_login(tenant: str = Query(..., description="Tenant/org id requesti
 
 @app.post("/auth/sso/callback")
 async def sso_callback(payload: dict):
+    # SEC-6: validate SAML assertion (CWE-347)
+    from src.auth.saml_guard import validate_saml_assertion
+    if not validate_saml_assertion(payload):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="invalid SAML assertion")
     return await saml_callback(payload)
 
 
+
+def verify_webhook_signature(payload: bytes, signature: str, secret: str, algo: str = "sha256") -> bool:
+    """Verify webhook signature (Stripe/GitHub). Returns True if valid."""
+    import hmac, hashlib
+    if not secret or not signature:
+        return False
+    expected = hmac.new(secret.encode(), payload, getattr(hashlib, algo)).hexdigest()
+    return hmac.compare_digest(expected, signature.replace("sha256=", "").replace("sha1=", ""))
+
 @app.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
+    import os
+    _secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
+    _sig = request.headers.get("Stripe-Signature", "")
+    if not _secret or not _sig or not verify_webhook_signature(await request.body(), _sig, _secret):
+        from fastapi import HTTPException
+        raise HTTPException(status_code=401, detail="invalid Stripe signature")
     payload = await request.body()
     sig = request.headers.get("Stripe-Signature", "")
     return await handle_stripe_webhook_async(payload, sig)

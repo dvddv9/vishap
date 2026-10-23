@@ -73,7 +73,7 @@ def test_webhook_bad_signature(client, monkeypatch):
             "Content-Type": "application/json",
         },
     )
-    assert r.status_code == 403
+    assert r.status_code == 401
 
 
 def test_webhook_ignored_action(client, monkeypatch):
