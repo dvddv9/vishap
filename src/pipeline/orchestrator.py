@@ -249,6 +249,8 @@ def detect_language(filename: str) -> str:
     return {
         "py": "python", "go": "go", "js": "javascript", "ts": "typescript",
         "java": "java", "rs": "rust",
+        "jsx": "javascript", "mjs": "javascript", "cjs": "javascript",
+        "tsx": "typescript",
     }.get(ext, "other")
 
 

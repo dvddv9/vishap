@@ -2,6 +2,7 @@
 """
 Загрузка промптов V5.7.
 """
+from src.tools.js_parser import scan_js_patterns
 import json
 from functools import lru_cache
 
@@ -9,6 +10,18 @@ from src.config import PROMPTS_DIR
 
 
 @lru_cache(maxsize=16)
+
+def _detect_language(filename: str) -> str:
+    """Inline (no import cycle): detect language by extension."""
+    ext = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
+    return {
+        "py": "python", "go": "go", "js": "javascript", "ts": "typescript",
+        "java": "java", "rs": "rust",
+        "jsx": "javascript", "mjs": "javascript", "cjs": "javascript",
+        "tsx": "typescript",
+    }.get(ext, "other")
+
+
 def load_prompt(name: str) -> str:
     """Загружает промпт по имени (00_orchestrator → 00_orchestrator.md)."""
     path = PROMPTS_DIR / f"{name}.md"
@@ -33,6 +46,13 @@ def build_prompt(
         web_search_results: результаты Tavily (список dict с results)
     """
     system = load_prompt(name)
+    # v7.3: JS/TS sinks hint to LLM (taint candidates)
+    _fn = (context or {}).get("filename", "") if isinstance(context, dict) else ""
+    if _detect_language(_fn) in ("javascript", "typescript") and isinstance(material, str):
+        _js = scan_js_patterns(material)
+        if _js:
+            _hints = "\n".join(f"- {f['sink']} (line {f['line']}) -> {f['cwe']}" for f in _js)
+            system += f"\n\n## Known JS/TS sinks (taint candidates)\n{_hints}"
 
     parts = [f"## MATERIAL\n\n{material}"]
 
