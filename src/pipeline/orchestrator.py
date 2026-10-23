@@ -17,6 +17,7 @@ from src.pipeline.stages import (
     stage0_orchestrator,
     stage1_scanner,
     stage2_analyst,
+    stage1_5_translator,
     stage2_5_redteam,
     stage3_researcher,
     stage4_synthesizer,
@@ -659,6 +660,11 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     if verbose:
         print("[Stage 1] Scanner...")
     stage1 = _timed_stage(log, "stage1", session_id, stage1_scanner, material, {"stage0": stage0})
+    # v7.3.13: cross-language translator (VISHAP_TRANSLATOR=1)
+    stage1_5 = _timed_stage(log, "stage1_5", session_id, stage1_5_translator, material, {"stage0": stage0, "stage1": stage1})
+    if verbose and stage1_5.get("cross_language"):
+        print(f"  → cross-language: {len(stage1_5['cross_language'])}")
+    _stage1_5_ctx = stage1_5 if stage1_5.get("cross_language") else None
 
     _lang = detect_language(filename)
     _sast_result = None
@@ -704,6 +710,8 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
             if verbose:
                 print(f"  [Inter-file] error: {_e}")
     _stage2_ctx = {"stage0": stage0, "stage1": stage1}
+    if "_stage1_5_ctx" in dir() and _stage1_5_ctx:
+        _stage2_ctx["stage1_5"] = _stage1_5_ctx
     if _ctx_files:
         _stage2_ctx["context_files"] = _ctx_files
     stage2 = _timed_stage(log, "stage2", session_id, stage2_analyst, material, _stage2_ctx)

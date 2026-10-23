@@ -287,6 +287,70 @@ def stage1_scanner(material: str, context: dict) -> dict:
     )
 
 
+def stage1_5_translator(material: str, context: dict, async_mode: bool = False, verbose: bool = False) -> dict:
+    """v7.3.13: cross-language translator (one DeepSeek, all languages).
+
+    Input:  stage1 (scanner) findings.
+    Output: {"cross_language": [...], "mode": "custom"}
+
+    Prompt: "Here is SQLi in Python. How does it look in Java / C / Go?
+             Find analogs in the material."
+
+    Enabled by VISHAP_TRANSLATOR=1 (default: off).
+    """
+    import os
+    import json as _json
+    if os.getenv("VISHAP_TRANSLATOR", "0").strip() not in ("1", "true", "yes"):
+        return {"cross_language": [], "mode": "skipped", "reason": "VISHAP_TRANSLATOR!=1"}
+
+    stage1 = context.get("stage1") or {}
+    findings = stage1.get("findings", []) if isinstance(stage1, dict) else []
+    if not findings:
+        return {"cross_language": [], "mode": "skipped", "reason": "no stage1 findings"}
+
+    findings_json = _json.dumps(findings[:10], ensure_ascii=False)[:4000]
+    system = (
+        "You are a cross-language security translator. "
+        "You will receive security findings (JSON) from one language. "
+        "Your task: for each finding, describe the SAME PATTERN in other languages "
+        "(Java, C, Go, JavaScript/TypeScript). "
+        "Look for analogs in the material. "
+        "Return ONLY valid JSON: "
+        '{"cross_language": [{"cwe": "CWE-XXX", "pattern": "...", "languages": ["Java", "C", "Go"], '
+        '"analogs": ["...", "..."], "confidence": "high|medium|low"}]}'
+    )
+    user = (
+        "Findings (JSON):\n" + findings_json + "\n\n"
+        "Material (first 3000 chars):\n" + material[:3000]
+    )
+
+    try:
+        if async_mode:
+            from src.llm.async_client import async_chat as llm_achat
+            result = llm_achat(system, user)
+        else:
+            from src.llm.client import chat as llm_chat
+            result = llm_chat(system, user, temperature=0.2, max_tokens=1200)
+        text = result.get("text", "") or ""
+        try:
+            parsed = _json.loads(text)
+        except _json.JSONDecodeError:
+            try:
+                from src.pipeline.stages import parse_json_response
+                parsed = parse_json_response(text)
+            except Exception:
+                parsed = {}
+        cross = parsed.get("cross_language", []) if isinstance(parsed, dict) else []
+        return {
+            "cross_language": cross if isinstance(cross, list) else [],
+            "mode": "custom",
+            "tokens_in": result.get("tokens_in", 0),
+            "tokens_out": result.get("tokens_out", 0),
+        }
+    except Exception as e:
+        return {"cross_language": [], "mode": "error", "error": str(e)}
+
+
 def stage2_analyst(material: str, context: dict,
                    search_queries: list | None = None) -> dict:
     """Stage 2: Analyst с опциональным web search."""

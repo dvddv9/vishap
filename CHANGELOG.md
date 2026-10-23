@@ -4,6 +4,16 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.13] - 2026-10-23
+
+### Added
+- **Cross-language translator** (`VISHAP_TRANSLATOR=1`) — stage1.5: «Here is SQLi in Python. How does it look in Java / C / Go?» Result merged into stage2 context (only if stage1.findings non-empty).
+- `result_sess-*.json`: now saves `stage1_5` and `stage2_5` (debug/audit).
+
+### Changed
+- `stage1_5_translator`: max 10 findings, truncate to 4000 chars, async_mode support, JSON parse fallback.
+- **Note:** translator works only for SAST findings (SQLi, path traversal, hardcoded secret). XSS (LLM-only) is not translated.
+
 ## [7.3.12] - 2026-10-23
 
 ### Changed
