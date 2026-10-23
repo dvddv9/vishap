@@ -93,4 +93,4 @@ report_*.md
 venv/
 .stage4/
 harness_out.txt
-dsh_output.log
+dsh_output.logclaude-plugin/*.mcpb
