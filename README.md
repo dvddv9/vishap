@@ -1,4 +1,3 @@
-![Uploading Screenshot 2026-10-24 003530.png…]()
 # 🐉 Vishap
 
 ![Vishap Dashboard](docs/screenshots/dashboard.png)
