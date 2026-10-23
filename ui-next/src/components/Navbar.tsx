@@ -25,11 +25,11 @@ function NavbarInner({ auth }: { auth: AuthState }) {
   const pathname = usePathname();
 
   return (
-    <header className="sticky top-0 z-50 border-b border-slate-800 bg-slate-950/85 backdrop-blur">
+    <header className="sticky top-0 z-50 border-b border-slate-200 bg-white/80 backdrop-blur">
       <nav className="mx-auto flex h-14 w-full max-w-6xl items-center gap-1 px-4">
         <Link
           href="/"
-          className="mr-3 flex items-center gap-2 text-base font-semibold tracking-tight text-slate-100 transition-colors hover:text-white"
+          className="mr-3 flex items-center gap-2 text-base font-semibold tracking-tight text-slate-900 transition-colors hover:text-slate-700"
         >
           <span aria-hidden="true">🐉</span>
           <span>Vishap</span>
@@ -44,8 +44,8 @@ function NavbarInner({ auth }: { auth: AuthState }) {
               aria-current={isActive ? "page" : undefined}
               className={`flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${
                 isActive
-                  ? "bg-slate-800/80 text-slate-100"
-                  : "text-slate-400 hover:bg-slate-800/50 hover:text-slate-200"
+                  ? "bg-slate-100 text-slate-900"
+                  : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
               }`}
             >
               <Icon className="h-4 w-4" aria-hidden="true" />
@@ -58,7 +58,7 @@ function NavbarInner({ auth }: { auth: AuthState }) {
           href={DOCS_URL}
           target="_blank"
           rel="noreferrer"
-          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-400 transition-colors hover:bg-slate-800/50 hover:text-slate-200"
+          className="flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-800"
         >
           <ExternalLink className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline">Docs</span>
@@ -72,7 +72,7 @@ function NavbarInner({ auth }: { auth: AuthState }) {
           ) : auth === "signed-out" ? (null) : (
             // Desktop: no session, nothing to sign in to. A quiet badge keeps the
             // layout stable and tells the user which build they are running.
-            <span className="rounded-md border border-slate-800 px-2 py-1 text-[0.7rem] font-medium uppercase tracking-wide text-slate-500">
+            <span className="rounded-md border border-slate-200 px-2 py-1 text-[0.7rem] font-medium uppercase tracking-wide text-slate-500">
               Local
             </span>
           )}

@@ -49,15 +49,15 @@ export default function LLMSettings() {
     }
   }
 
-  if (!cfg) return <div className="text-slate-400">Loading LLM settings...</div>;
+  if (!cfg) return <div className="text-slate-600">Loading LLM settings...</div>;
 
   return (
-    <div className="rounded-xl border border-slate-700 bg-slate-900 p-6 mt-8">
+    <div className="rounded-xl border border-slate-300 bg-white p-6 mt-8">
       <h2 className="text-lg font-semibold text-white mb-4">LLM Provider</h2>
 
-      <label className="block text-sm text-slate-300 mb-1">Provider</label>
+      <label className="block text-sm text-slate-700 mb-1">Provider</label>
       <select
-        className="w-full mb-3 rounded bg-slate-800 border border-slate-700 p-2 text-white"
+        className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
         value={cfg.provider}
         onChange={(e) => setCfg({ ...cfg, provider: e.target.value })}
       >
@@ -66,28 +66,28 @@ export default function LLMSettings() {
 
       {cfg.provider === "custom" && (
         <>
-          <label className="block text-sm text-slate-300 mb-1">Base URL</label>
+          <label className="block text-sm text-slate-700 mb-1">Base URL</label>
           <input
-            className="w-full mb-3 rounded bg-slate-800 border border-slate-700 p-2 text-white"
+            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
             value={cfg.custom_url}
             onChange={(e) => setCfg({ ...cfg, custom_url: e.target.value })}
             placeholder="https://api.groq.com/openai/v1"
           />
 
-          <label className="block text-sm text-slate-300 mb-1">Model</label>
+          <label className="block text-sm text-slate-700 mb-1">Model</label>
           <input
-            className="w-full mb-3 rounded bg-slate-800 border border-slate-700 p-2 text-white"
+            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
             value={cfg.custom_model}
             onChange={(e) => setCfg({ ...cfg, custom_model: e.target.value })}
             placeholder="llama-3.3-70b-versatile"
           />
 
-          <label className="block text-sm text-slate-300 mb-1">
+          <label className="block text-sm text-slate-700 mb-1">
             API Key {cfg.has_custom_key && <span className="text-green-400">(already set)</span>}
           </label>
           <input
             type="password"
-            className="w-full mb-3 rounded bg-slate-800 border border-slate-700 p-2 text-white"
+            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="gsk_..."
@@ -103,7 +103,7 @@ export default function LLMSettings() {
         {saving ? "Saving..." : "Save"}
       </button>
 
-      {msg && <p className="mt-2 text-sm text-slate-300">{msg}</p>}
+      {msg && <p className="mt-2 text-sm text-slate-700">{msg}</p>}
     </div>
   );
 }

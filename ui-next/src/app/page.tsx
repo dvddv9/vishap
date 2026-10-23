@@ -129,7 +129,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
           <button
             type="button"
             onClick={() => void mutate()}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-slate-600 hover:text-slate-100"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             Refresh
@@ -139,7 +139,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
             onClick={handleAudit}
             disabled={auditBusy}
             title="Download the audit trail (JSON)"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-slate-600 hover:text-slate-100 disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 shadow-sm transition-colors hover:border-slate-400 hover:bg-slate-50 disabled:opacity-50"
           >
             {auditBusy ? (
               <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -153,7 +153,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
             onClick={handleClearHistory}
             disabled={clearing || !jobs?.length}
             title="Clear the analysis history"
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-700 px-4 py-2 text-sm text-slate-300 transition-colors hover:border-red-800 hover:text-red-300 disabled:cursor-not-allowed disabled:opacity-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-300 px-4 py-2 text-sm text-slate-700 shadow-sm transition-colors hover:border-red-300 hover:bg-red-50 hover:text-red-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {clearing ? (
               <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
@@ -164,9 +164,9 @@ function Dashboard({ auth }: { auth: AuthState }) {
           </button>
         </section>
       ) : (
-        <section className="mt-8 rounded-xl border border-slate-800 bg-slate-900/50 p-6">
-          <h2 className="text-lg font-medium text-slate-100">Sign in to run an analysis</h2>
-          <p className="mt-1 max-w-xl text-sm text-slate-400">
+        <section className="mt-8 rounded-xl border border-slate-200 bg-white p-6 shadow-sm">
+          <h2 className="text-lg font-medium text-slate-900">Sign in to run an analysis</h2>
+          <p className="mt-1 max-w-xl text-sm text-slate-600">
             Analyses are tied to your account. Sign in with Clerk to upload material and read the
             generated report.
           </p>
@@ -178,7 +178,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
 
       <section className="mt-10">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-medium text-slate-100">Recent analyses</h2>
+          <h2 className="text-lg font-medium text-slate-900">Recent analyses</h2>
           {isLoading ? (
             <span className="flex items-center gap-1.5 text-xs text-slate-500">
               <LoaderCircle className="h-3.5 w-3.5 animate-spin" aria-hidden="true" />
@@ -188,7 +188,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
         </div>
 
         {actionError ? (
-          <p className="mt-4 flex items-start gap-2 rounded-xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+          <p className="mt-4 flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
             <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
             <span>{actionError}</span>
           </p>
@@ -196,7 +196,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
 
         <div className="mt-4 flex flex-col gap-3">
           {error ? (
-            <p className="flex items-start gap-2 rounded-xl border border-red-900/60 bg-red-950/40 px-4 py-3 text-sm text-red-200">
+            <p className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
               <TriangleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
               <span>{error instanceof Error ? error.message : "Could not load jobs."}</span>
             </p>

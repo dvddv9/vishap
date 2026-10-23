@@ -4,6 +4,12 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.10] - 2026-10-23
+
+### Changed
+- **UI: light theme** — `globals.css` switched from dark (`#070b10`) to light (`#f8fafc` / `#0f172a`). Hero, FeatureGrid, EmptyState, Navbar, footer, JobCard, LLMSettings — all light.
+- `layout.tsx`: `VISHAP_VERSION` synced to `7.3.10`.
+
 ## [7.3.9] - 2026-10-23
 
 ### Added

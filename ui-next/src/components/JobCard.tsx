@@ -49,14 +49,14 @@ export default function JobCard({
   }
 
   return (
-    <article className="flex flex-col gap-3 rounded-xl border border-slate-800 bg-slate-900/50 p-4 transition-colors hover:border-slate-700 sm:flex-row sm:items-center sm:justify-between">
+    <article className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 sm:flex-row sm:items-center sm:justify-between">
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2">
           <span className={meta.badge}>
             <Icon className="h-3.5 w-3.5" aria-hidden="true" />
             {meta.label}
           </span>
-          <h3 className="truncate font-mono text-sm text-slate-200" title={job.filename}>
+          <h3 className="truncate font-mono text-sm text-slate-800" title={job.filename}>
             {job.filename}
           </h3>
         </div>
@@ -82,14 +82,14 @@ export default function JobCard({
         {job.status === "done" ? (
           <Link
             href={`/report?id=${encodeURIComponent(job.job_id)}`}
-            className="rounded-md border border-slate-700 px-3 py-1.5 text-sm text-slate-200 transition-colors hover:border-sky-500 hover:text-sky-300"
+            className="rounded-md border border-slate-300 px-3 py-1.5 text-sm text-slate-800 transition-colors hover:border-sky-500 hover:text-sky-300"
           >
             View
           </Link>
         ) : (
           <Link
             href={`/report?id=${encodeURIComponent(job.job_id)}`}
-            className="rounded-md border border-slate-800 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:border-slate-700 hover:text-slate-300"
+            className="rounded-md border border-slate-200 px-3 py-1.5 text-sm text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-700"
           >
             Open
           </Link>
@@ -101,7 +101,7 @@ export default function JobCard({
             disabled={deleting}
             title="Delete this job"
             aria-label={`Delete ${job.filename}`}
-            className="rounded-md border border-slate-800 p-1.5 text-slate-500 transition-colors hover:border-red-800 hover:text-red-300 disabled:opacity-50"
+            className="rounded-md border border-slate-200 p-1.5 text-slate-500 transition-colors hover:border-red-800 hover:text-red-300 disabled:opacity-50"
           >
             {deleting ? (
               <LoaderCircle className="h-4 w-4 animate-spin" aria-hidden="true" />
