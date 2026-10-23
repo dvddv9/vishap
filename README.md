@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/vishap-analyzer.svg)](https://pypi.org/project/vishap-analyzer/)
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
-[![Version](https://img.shields.io/badge/version-7.3.11-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.11)
+[![Version](https://img.shields.io/badge/version-7.3.12-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.12)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > 🐉 **Vishap** — 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
@@ -22,7 +22,7 @@
 
 > ⚠️ Free tier: first request may take 30–50 s (cold start).
 
-## 🎉 What's new in v7.3.11
+## 🎉 What's new in v7.3.12
 
 - **DSH endpoint support** — `dsh-model-endpoint` plugin exposes `http://127.0.0.1:8787/v1` as an OpenAI-compatible API. Set `VISHAP_LLM_PROVIDER=custom`, `CUSTOM_LLM_URL=http://127.0.0.1:8787/v1`, `CUSTOM_LLM_KEY=<dsh-key>`, `CUSTOM_LLM_MODEL=auto`.
 - **reasoning_content fallback** — `custom_client.py` falls back to `message.reasoning_content` when `content` is empty (DeepSeek flash / V4).
@@ -56,6 +56,8 @@
 - **Version sync**: 7.2.2 (`pyproject.toml`, `version.py`, `package.json`, `main.py`, `layout.tsx`)
 
 ## 🔌 DSH (DeepSeek Harness) — via endpoint (**optional**)
+
+> **Default:** DeepSeek API (`https://api.deepseek.com/v1`). Use DSH endpoint **only** if you want local inference (no API key). (**optional**)
 
 > **Default:** DeepSeek API (`https://api.deepseek.com/v1`). Use DSH endpoint **only** if you want local inference (no API key).
 

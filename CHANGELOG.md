@@ -4,6 +4,14 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.12] - 2026-10-23
+
+### Changed
+- **Default provider: DeepSeek API** (`https://api.deepseek.com/v1`, `deepseek-chat`). DSH endpoint is now **optional**.
+- `.env.example`: `CUSTOM_LLM_URL=https://api.deepseek.com/v1` + comment.
+- README: DSH section marked as optional.
+- `_resolve_provider()`: docstring updated.
+
 ## [7.3.11] - 2026-10-23
 
 ### Added
