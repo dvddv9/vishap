@@ -28,14 +28,9 @@ except ImportError:
 
 TOOLS_DIR = ROOT_DIR / "src" / "tools"
 
-# === LLM: DSH harness (the only provider) ===
-# Vishap talks to a local DeepSeek Harness instance. There is no direct
+# === LLM: custom (OpenAI-compatible / DSH endpoint) ===
 # DeepSeek / OpenAI / OpenAI-compatible API call any more (v7.0.0).
-HARNESS_URL = os.getenv("HARNESS_URL", "http://127.0.0.1:3080")
-HARNESS_TOKEN = os.getenv("HARNESS_TOKEN", "")
-HARNESS_TIMEOUT = float(os.getenv("HARNESS_TIMEOUT", "30"))
 
-# === LLM: provider selection (v7.2: custom | harness | auto) ===
 LLM_PROVIDER = os.getenv("VISHAP_LLM_PROVIDER", "auto").strip().lower()
 
 CUSTOM_LLM_URL = os.getenv("CUSTOM_LLM_URL", "")

@@ -2,7 +2,7 @@
 """Simple in-memory rate limiter (dogfood P0 fix).
 
 Dogfood finding: no rate limiting on /analyze -> any client could
-exhaust the local harness (one model, no queue of its own).
+exhaust the local LLM endpoint (one model, no queue of its own).
 
 Limits (per IP):
 - 10 requests / minute for /analyze, /analyze/batch

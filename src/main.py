@@ -5,7 +5,6 @@ Vishap — FastAPI приложение.
 from contextlib import asynccontextmanager
 import json
 import os
-import threading
 import time
 import uuid
 from datetime import datetime
@@ -48,29 +47,7 @@ from src.api.reports import InvalidReportPath, report_path, save_report
 from src.api.webhooks import notify_webhook
 from datetime import UTC
 from src.tools.sarif import to_sarif
-from src.llm.harness_launcher import autostart_enabled, ensure_harness, status as harness_status
 from src.api import llm_config
-
-
-def _start_harness_in_background() -> None:
-    """Make the harness reachable without delaying API startup."""
-    if not autostart_enabled():
-        return
-    if "PYTEST_CURRENT_TEST" in os.environ:
-        return
-
-    def _run() -> None:
-        try:
-            result = ensure_harness()
-            if result["reachable"]:
-                how = "started" if result["started"] else "already running"
-                print(f"[harness] ready at {result['url']} ({how})")
-            else:
-                print(f"[harness] not reachable: {result['error']}")
-        except Exception as e:
-            print(f"[harness] autostart failed: {type(e).__name__}: {e}")
-
-    threading.Thread(target=_run, name="harness-autostart", daemon=True).start()
 
 
 @asynccontextmanager
@@ -78,7 +55,6 @@ async def lifespan(app: FastAPI):
     validate_config()
     print(f"=== {APP_NAME} API запускается ===")
     print(f"Документация: http://localhost:{PORT}/docs")
-    _start_harness_in_background()
     yield
     print(f"=== {APP_NAME} API останавливается ===")
 
@@ -258,26 +234,7 @@ async def health():
     return {
         "status": "ok",
         "timestamp": datetime.now().isoformat(),
-        "harness": harness_status(),
     }
-
-
-@app.get("/harness/status")
-async def harness_status_endpoint():
-    return harness_status(fresh=True)
-
-
-def _ensure_harness_safely() -> None:
-    try:
-        ensure_harness()
-    except Exception as e:
-        print(f"[harness] start failed: {type(e).__name__}: {e}")
-
-
-@app.post("/harness/start", status_code=202)
-def harness_start(background: BackgroundTasks):
-    background.add_task(_ensure_harness_safely)
-    return {"status": "starting", "harness": harness_status()}
 
 
 @app.delete("/status/{job_id}", dependencies=[Depends(verify_api_key), Depends(rate_limit_read)])
@@ -299,7 +256,6 @@ async def metrics():
 
 @app.post("/webhook/github")
 async def github_webhook(request: Request):
-    import os
     _secret = os.getenv("GITHUB_WEBHOOK_SECRET", "")
     _sig = request.headers.get("X-Hub-Signature-256", "")
     if not _secret or not _sig or not verify_webhook_signature(await request.body(), _sig, _secret):
@@ -363,7 +319,6 @@ def verify_webhook_signature(payload: bytes, signature: str, secret: str, algo: 
 
 @app.post("/webhook/stripe")
 async def stripe_webhook(request: Request):
-    import os
     _secret = os.getenv("STRIPE_WEBHOOK_SECRET", "")
     _sig = request.headers.get("Stripe-Signature", "")
     if not _secret or not _sig or not verify_webhook_signature(await request.body(), _sig, _secret):

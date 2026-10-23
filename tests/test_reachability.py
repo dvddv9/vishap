@@ -4,7 +4,6 @@
 Test-first: this file is written BEFORE the module.
 Expect ImportError on first run.
 """
-import pytest
 
 from src.tools.reachability import (
     find_entry_points,

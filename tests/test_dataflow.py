@@ -4,7 +4,6 @@
 Tests define the API of src/tools/dataflow.py before implementation.
 All tests will fail on ImportError until dataflow.py is written.
 """
-import pytest
 
 from src.tools.dataflow import analyze_dataflow, enrich_dataflow
 from src.tools.patterns import AST_TAINT_SOURCES, AST_TAINT_SINKS

@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 """Tests for Quality Gates (P1-5)."""
-from pathlib import Path
 
 from src.tools.quality_gate import (
     load_quality_gate,

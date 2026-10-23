@@ -27,8 +27,8 @@ def read_config():
 
 @router.post("/config")
 def write_config(cfg: LLMConfig):
-    if cfg.provider not in ("harness", "custom"):
-        raise HTTPException(400, "provider must be harness | custom")
+    if cfg.provider not in ("custom",):
+        raise HTTPException(400, "provider must be custom")
     patch = {"LLM_PROVIDER": cfg.provider}
     if cfg.provider == "custom":
         if not cfg.custom_url:

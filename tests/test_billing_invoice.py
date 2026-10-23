@@ -2,7 +2,6 @@
 """Enterprise invoice tests (v6.3) — Stripe is always mocked."""
 from unittest.mock import MagicMock, patch
 
-import pytest
 from fastapi.testclient import TestClient
 
 from src.billing import stripe_client

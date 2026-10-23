@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/vishap-analyzer.svg)](https://pypi.org/project/vishap-analyzer/)
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
-[![Version](https://img.shields.io/badge/version-7.3.4-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.4)
+[![Version](https://img.shields.io/badge/version-7.3.5-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.5)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > 🐉 **Vishap** — 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
@@ -44,22 +44,22 @@
 - **#8 `report_date` / `valid_until`** — ISO + 90 days
 
 ### UI (`ui-next/`)
-- **LLMSettings**: provider = `custom` | `harness` (DeepSeek via custom)
+- **LLMSettings**: provider = `custom` (OpenAI-compatible / DSH endpoint)
 - **Report v7.2 block**: Fidelity / Bias check / Reproducer / Negative evidence / Report date / valid_until
 - **CORS fix**: `app.add_middleware(CORSMiddleware, ...)` — Settings form works in browser
 - **mojibake fix**: em-dash `—`, ellipsis `…`, emoji 🐉
 
 ### Backend
-- **`async_chat`** — respects `VISHAP_LLM_PROVIDER=custom` (was harness-only)
+- **`async_chat`** — respects `VISHAP_LLM_PROVIDER=custom`
 - **Docker**: bind `0.0.0.0` — `-p 5001:5001` smoke-test passes
-- **CI**: ruff F401 cleanup; `ensure_harness` probe fallback; `services.postgres` fix
+- **CI**: ruff F401 cleanup; `services.postgres` fix
 - **Version sync**: 7.2.2 (`pyproject.toml`, `version.py`, `package.json`, `main.py`, `layout.tsx`)
 
 ## 🛠️ Features
 
 - **6-stage pipeline:** Ingestion → Taint Analysis → Dataflow → Risk Assessment → Verdict → Report.
 - **Multi-language:** Python, Java, C, **JavaScript / TypeScript** (AST + taint patterns).
-- **Multi-provider LLM:** DeepSeek (custom), any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together), or a local DSH endpoint via the `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`). Legacy `harness` provider is deprecated — use `custom` + DSH endpoint.
+- **Multi-provider LLM:** DeepSeek (custom), any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together), or a local DSH endpoint via the `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`). Endpoint-only since v7.3.5 (legacy `harness` removed).
 - **Async API:** FastAPI + Celery workers (optional in-process fallback).
 - **Security:** HMAC-SHA256 for API keys (with pepper), Fernet for secrets.
 - **Observability:** Structlog (JSON), Prometheus `/metrics`, OpenTelemetry traces.

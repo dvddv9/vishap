@@ -9,7 +9,6 @@ RN-N would get SAFE -- false negative.
 Dogfood: wcurl.1 case (2026-10-15). stage2.security = {summary, findings}.
 findings[].priority in ("критично", "critical").
 """
-import inspect
 
 from src.pipeline.orchestrator import run_audit
 

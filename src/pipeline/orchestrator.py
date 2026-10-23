@@ -49,16 +49,16 @@ from src.pipeline.verdict import (
 )
 from src.version import __version__
 
-#: What `src.llm.client.chat()` returns when the harness cannot be reached.
+#: What `src.llm.client.chat()` returns when the custom endpoint cannot be reached.
 LLM_ERROR_PREFIX = "[LLM error]"
 
 #: Shown instead of a silent "SAFE" report when no stage ever reached the model.
 LLM_UNAVAILABLE_BANNER = (
     "## Анализ не выполнен: LLM недоступен\n\n"
-    "DSH harness не ответил, поэтому стадии не собрали отчёт — "
+    "DSH endpoint не ответил, поэтому стадии не собрали отчёт — "
     "ниже пустой результат, а audit помечен `critique_verdict: ERROR`.\n\n"
-    "Проверьте `HARNESS_URL` / `HARNESS_TOKEN` (в интерфейсе — бейдж **Harness**, "
-    "кнопка **Start**).\n\n"
+    "Проверьте `CUSTOM_LLM_URL` / `CUSTOM_LLM_KEY` (OpenAI-compatible endpoint; "
+    "для DSH — `dsh-model-endpoint` на `http://127.0.0.1:8787/v1`).\n\n"
     "```\n{error}\n```\n\n---\n\n"
 )
 
@@ -303,7 +303,7 @@ def sanitize_session_id(text: str, real_session_id: str) -> str:
     return text
 
 
-def run_audit(material: str, session_id: str, model: str = "harness",
+def run_audit(material: str, session_id: str, model: str = "custom",
               truncated: bool = False, original_size: int = 0,
               material_hash_full: str = None,
               force_emergency: bool = False,

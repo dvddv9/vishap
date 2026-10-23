@@ -1,18 +1,12 @@
 # -*- coding: utf-8 -*-
-"""
-Режим работы LLM: harness (единственный с v7.0.0).
-Сохраняется в data/mode.json для совместимости API.
-
-Прямых обращений к DeepSeek/OpenAI больше нет: всё идёт через DSH harness.
-Устаревшее значение в mode.json (auto/cloud/local/...) игнорируется.
-"""
+"""LLM mode: custom (OpenAI-compatible / DSH endpoint) — only valid mode (v7.3.5)."""
 import json
 
 from src.config import DATA_DIR
 
 MODE_FILE = DATA_DIR / "mode.json"
-DEFAULT_MODE = "harness"
-VALID_MODES = ("harness",)
+DEFAULT_MODE = "custom"
+VALID_MODES = ("custom",)
 
 
 def get_mode() -> str:

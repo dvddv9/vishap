@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """Tests for threat_model-based verdict (v6.1 P0 fix)."""
-from src.pipeline.verdict import compute_risk_verdict, _has_critical_threat_model
+from src.pipeline.verdict import compute_risk_verdict
 
 
 def test_critical_in_threat_model_triggers_review():

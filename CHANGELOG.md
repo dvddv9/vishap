@@ -4,12 +4,36 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.5] - 2026-10-23
+
+### Removed
+- **Legacy `harness` provider removed.** Vishap is now endpoint-only: `VISHAP_LLM_PROVIDER=custom` + `CUSTOM_LLM_URL` (OpenAI-compatible, e.g. DSH endpoint `http://127.0.0.1:8787/v1` via `dsh-model-endpoint`).
+- Removed `src/llm/harness_client.py`, `src/llm/harness_launcher.py`, `HARNESS_*` env vars, `/harness/*` endpoints.
+- Removed `tests/test_harness_api.py`, `tests/test_harness_launcher.py`.
+
+### Changed
+- `_resolve_provider()` always returns `"custom"`.
+- `src/storage/mode.py`: `VALID_MODES = ("custom",)`.
+- `.env.example`: only `CUSTOM_LLM_*` + `VISHAP_LLM_PROVIDER=custom`.
+
+### Migration
+If you used `HARNESS_*`, switch to `dsh-model-endpoint`:
+```
+VISHAP_LLM_PROVIDER=custom
+CUSTOM_LLM_URL=http://127.0.0.1:8787/v1
+CUSTOM_LLM_KEY=<dsh-key>
+CUSTOM_LLM_MODEL=auto
+```
+
 ## [7.3.4] - 2026-10-23
 
 ### Fixed
 - `custom_client.py`: fallback to `message.reasoning_content` when `content` is empty (DeepSeek flash / V4 reasoning models).
 - `stages.py::parse_json_response`: recover JSON truncated at `max_tokens` (close unclosed `{`/`[`, cut at last valid object).
 - Version sync: `src/version.py` as single source of truth; CI check via `scripts/check_version.py`.
+
+### Changed
+- **Default provider switched to `custom`** (OpenAI-compatible endpoint). For local DSH: set `CUSTOM_LLM_URL=http://127.0.0.1:8787/v1` + `CUSTOM_LLM_KEY=<dsh-key>`. `harness` remains as fallback (set `VISHAP_LLM_PROVIDER=harness`).
 
 ### Added
 - DSH endpoint support via `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`, OpenAI-compatible).
