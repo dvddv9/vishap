@@ -61,7 +61,9 @@ class CustomClient:
         try:
             r = requests.post(
                 f"{self.base_url}/chat/completions",
-                json=payload, headers=headers, timeout=self.timeout,
+                headers={**headers, "Content-Type": "application/json; charset=utf-8"},
+                data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+                timeout=self.timeout,
             )
         except requests.RequestException as e:
             raise CustomError(f"custom request failed: {e}") from e
