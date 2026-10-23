@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/vishap-analyzer.svg)](https://pypi.org/project/vishap-analyzer/)
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
-[![Version](https://img.shields.io/badge/version-7.3.5-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.5)
+[![Version](https://img.shields.io/badge/version-7.3.6-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.6)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > 🐉 **Vishap** — 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).

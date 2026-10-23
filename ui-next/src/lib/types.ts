@@ -62,20 +62,3 @@ export function isTerminal(status: JobStatus): boolean {
   return TERMINAL_STATUSES.includes(status);
 }
 
-/**
- * The DSH harness — the only LLM path.
- *
- * `GET /harness/status` returns this object directly; `/health` nests it under
- * `harness`. `reachable === false` means every analysis will fail with
- * `[LLM error]`, so the UI surfaces it in the navbar.
- */
-export interface HarnessStatus {
-  url: string;
-  reachable: boolean;
-  started: boolean;
-  /** Path to the dsh CLI when it was found, otherwise null. */
-  command: string | null;
-  autostart: boolean;
-  /** Why the probe failed — shown as a tooltip. */
-  error: string | null;
-}

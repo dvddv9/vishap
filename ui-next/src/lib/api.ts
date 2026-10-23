@@ -1,4 +1,4 @@
-﻿import type { AnalyzeResponse, HarnessStatus, Job, Report } from "./types";
+import type {AnalyzeResponse, Job, Report} from "./types";
 import { IS_DESKTOP } from "./desktop";
 
 /** Base URL of the FastAPI backend. */
@@ -51,8 +51,7 @@ async function apiViaTauri<T>(path: string, options: RequestInit): Promise<T> {
     method: options.method ?? "GET",
     path,
     body: typeof options.body === "string" ? options.body : null,
-    apiKey: API_KEY || null,
-  })) as { status: number; body: string };
+    apiKey: API_KEY || null})) as { status: number; body: string };
 
   let body: unknown = null;
   if (reply.body) {
@@ -131,8 +130,7 @@ export async function apiFetch<T>(path: string, options: RequestInit = {}): Prom
 export function submitAnalysis(material: string, filename: string): Promise<AnalyzeResponse> {
   return apiFetch<AnalyzeResponse>("/analyze/async", {
     method: "POST",
-    body: JSON.stringify({ material, filename }),
-  });
+    body: JSON.stringify({ material, filename })});
 }
 
 export function getJob(jobId: string): Promise<Job> {
@@ -141,16 +139,6 @@ export function getJob(jobId: string): Promise<Job> {
 
 export function getReport(jobId: string): Promise<Report> {
   return apiFetch<Report>(`/report/${encodeURIComponent(jobId)}`);
-}
-
-/** Is the harness (the only LLM path) alive? Polled by the navbar badge. */
-export function getHarnessStatus(): Promise<HarnessStatus> {
-  return apiFetch<HarnessStatus>("/harness/status");
-}
-
-/** Ask the backend to start `dsh web`. Resolves as soon as the job is scheduled. */
-export function startHarness(): Promise<{ status: string; harness: HarnessStatus }> {
-  return apiFetch<{ status: string; harness: HarnessStatus }>("/harness/start", { method: "POST" });
 }
 
 /** Forget a job; `/status` and `/report` answer 404 afterwards. */
@@ -175,8 +163,7 @@ export function clearHistory(): Promise<{ status: string; removed: number }> {
 export async function downloadAudit(format: "csv" | "json" = "json"): Promise<void> {
   const response = await fetch(`${API_URL}/audit/export?format=${format}`, {
     headers: API_KEY ? { "X-API-Key": API_KEY } : undefined,
-    cache: "no-store",
-  });
+    cache: "no-store"});
   if (!response.ok) {
     throw new ApiError(`Audit export failed with HTTP ${response.status}`, response.status);
   }

@@ -4,6 +4,14 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.6] - 2026-10-23
+
+### Removed
+- **UI cleanup:** removed `ui-next/src/components/HarnessBadge.tsx`, `getHarnessStatus()` / `startHarness()` from `api.ts`, `HarnessStatus` interface from `types.ts`, `harness` option from `LLMSettings.tsx`.
+
+### Changed
+- `LLMSettings`: provider is `custom` only (no `harness` option).
+
 ## [7.3.5] - 2026-10-23
 
 ### Removed

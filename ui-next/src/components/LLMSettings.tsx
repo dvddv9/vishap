@@ -62,7 +62,6 @@ export default function LLMSettings() {
         onChange={(e) => setCfg({ ...cfg, provider: e.target.value })}
       >
         <option value="custom">Custom (OpenAI-compatible)</option>
-        <option value="harness">DSH Harness</option>
       </select>
 
       {cfg.provider === "custom" && (
