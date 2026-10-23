@@ -18,7 +18,11 @@ NO_CUSTOM_TEXT = (
 
 
 def _resolve_provider() -> str:
-    """v7.3.5: endpoint-only. Always custom (OpenAI-compatible / DSH endpoint)."""
+    """v7.3.12: endpoint-only. Always "custom" (OpenAI-compatible).
+
+    Default: DeepSeek API (`https://api.deepseek.com/v1`).
+    Alternative: DSH endpoint (`http://127.0.0.1:8787/v1`) — optional.
+    """
     return "custom"
 
 

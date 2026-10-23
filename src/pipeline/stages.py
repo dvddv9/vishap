@@ -343,6 +343,66 @@ def _generate_default_queries(material: str) -> list:
     return queries[:3]
 
 
+def stage2_5_redteam(material: str, context: dict, async_mode: bool = False, verbose: bool = False) -> dict:
+    """v7.3.11: self-adversarial red team (one DeepSeek, second pass).
+
+    - analyst_json truncated to 4000 chars (LLM context limit).
+    - "Не выдумывай" — anti-hallucination.
+    - async_mode: uses achat (async_stages) if True.
+    - Enabled by VISHAP_REDTEAM=1 (default: off).
+    """
+    import os
+    import json as _json
+    if os.getenv("VISHAP_REDTEAM", "0").strip() not in ("1", "true", "yes"):
+        return {"missed": [], "critique": "", "mode": "skipped", "reason": "VISHAP_REDTEAM!=1"}
+
+    stage2 = context.get("stage2") or {}
+    analyst_json = _json.dumps(
+        {"risk_nodes": stage2.get("risk_nodes", []), "security": stage2.get("security", {})},
+        ensure_ascii=False,
+    )[:4000]
+
+    system = (
+        "Ты — red team. Вот отчёт Analyst (JSON):\n" + analyst_json + "\n\n"
+        "⚠️ Если отчёт > 4000 токенов — анализируй только risk_nodes, не весь JSON.\n\n"
+        "Твоя задача:\n"
+        "1. Найди, что Analyst ПРОПУСТИЛ (CWE, edge cases, trust boundaries).\n"
+        "2. Не соглашайся с Analyst. Если он говорит \"SAFE\" — ищи, что не так.\n"
+        "3. Верни JSON: {\"missed\": [{\"cwe\": \"...\", \"reason\": \"...\", \"severity\": \"...\"}]}\n\n"
+        "⚠️ Не выдумывай. Если не уверен — не включай в missed.\n"
+        "Return ONLY valid JSON, no markdown, no comments."
+    )
+    user = "Material (first 3000 chars):\n" + material[:3000]
+
+    try:
+        if async_mode:
+            from src.llm.async_client import async_chat as llm_achat
+            result = llm_achat(system, user)
+        else:
+            from src.llm.client import chat as llm_chat
+            result = llm_chat(system, user, temperature=0.3, max_tokens=1500)
+        text = result.get("text", "") or ""
+        try:
+            parsed = _json.loads(text)
+        except _json.JSONDecodeError:
+            try:
+                from src.pipeline.stages import parse_json_response
+                parsed = parse_json_response(text)
+            except Exception:
+                parsed = {}
+        missed = parsed.get("missed", []) if isinstance(parsed, dict) else []
+        critique = parsed.get("critique", "") if isinstance(parsed, dict) else ""
+        return {
+            "missed": missed if isinstance(missed, list) else [],
+            "critique": critique,
+            "mode": "custom",
+            "tokens_in": result.get("tokens_in", 0),
+            "tokens_out": result.get("tokens_out", 0),
+        }
+    except Exception as e:
+        return {"missed": [], "critique": "", "mode": "error", "error": str(e)}
+
+
 def stage3_researcher(material: str, context: dict) -> dict:
     return run_stage(
         stage_name="stage3_researcher",

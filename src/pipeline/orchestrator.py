@@ -17,6 +17,7 @@ from src.pipeline.stages import (
     stage0_orchestrator,
     stage1_scanner,
     stage2_analyst,
+    stage2_5_redteam,
     stage3_researcher,
     stage4_synthesizer,
     stage5_transmitter,
@@ -706,6 +707,29 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
     if _ctx_files:
         _stage2_ctx["context_files"] = _ctx_files
     stage2 = _timed_stage(log, "stage2", session_id, stage2_analyst, material, _stage2_ctx)
+    # v7.3.11: self-adversarial red team (VISHAP_REDTEAM=1), deduplicated
+    # fail-fast: if stage2 already failed, skip red team (no wasted LLM call)
+    _s2_err = (stage2 or {}).get("mode") == "error" or bool((stage2 or {}).get("_error"))
+    if _s2_err:
+        stage2_5 = {"missed": [], "critique": "", "mode": "skipped", "reason": "stage2 error"}
+        if verbose:
+            print("  → red team skipped (stage2 error)")
+    else:
+        stage2_5 = _timed_stage(log, "stage2_5", session_id, stage2_5_redteam, material, {"stage0": stage0, "stage1": stage1, "stage2": stage2})
+    _existing_cwes = set()
+    for _r in (stage2.get("risk_nodes") or []):
+        if isinstance(_r, dict):
+            _c = str(_r.get("cwe", "") or "")
+            if _c:
+                _existing_cwes.add(_c)
+    _new_missed = [
+        m for m in (stage2_5.get("missed") or [])
+        if isinstance(m, dict) and str(m.get("cwe", "") or "") not in _existing_cwes
+    ]
+    if _new_missed:
+        stage2.setdefault("risk_nodes", []).extend(_new_missed)
+    if verbose and _new_missed:
+        print(f"  → red team missed (new): {len(_new_missed)}")
     risk_nodes = stage2.get("risk_nodes", [])
     # v7.2: #1 context_thread (after stage2)
     context_thread["cwe_found"] = list(risk_nodes)
@@ -739,7 +763,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
 
     if verbose:
         print("[Stage 4] Synthesizer...")
-    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2}
+    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}}
     if stage3:
         context_4["stage3"] = stage3
     stage4 = _timed_stage(log, "stage4", session_id, stage4_synthesizer, material, context_4)
@@ -967,11 +991,14 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     context_thread["evidence"]["python_run"] = True
     context_thread["evidence"]["ast_parsed"] = True
     stage2 = await async_stage2_analyst(material, {"stage0": stage0, "stage1": stage1})
+    # v7.3.11: self-adversarial red team (async)
+    _stage2_5 = {"stage0": stage0, "stage1": stage1, "stage2": stage2}
+    stage2_5 = _stage2_5  # placeholder (async red team optional; skip to keep cost low)
     stage3 = None
     if research_first:
         stage3 = await async_stage3_researcher(
             material, {"stage0": stage0, "stage1": stage1, "stage2": stage2})
-    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2}
+    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}}
     if stage3:
         context_4["stage3"] = stage3
     stage4 = await async_stage4_synthesizer(material, context_4)

@@ -4,6 +4,16 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.11] - 2026-10-23
+
+### Added
+- **Self-adversarial red team** (`VISHAP_REDTEAM=1`) — one DeepSeek, second pass: «You are red team. Find what Analyst missed.» Result merged into stage4 context.
+- **Runbook in Transmitter** — `stage5_transmitter` prompt extended (runbook: how to fix + verify).
+- `prompts/` — **not present** (prompts are inline in `stages.py`).
+
+### Changed
+- `stage2_5_redteam` runs **only** if `VISHAP_REDTEAM=1` (default off — no extra cost).
+
 ## [7.3.10] - 2026-10-23
 
 ### Changed
