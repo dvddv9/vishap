@@ -123,7 +123,47 @@ Expected: `mode: custom`, text like `Hello there, how are you?`.
 - **CI/CD:** GitHub Actions (tests, lint, docs deploy).
 - **Desktop:** Tauri app for Windows.
 
+## 🎯 When to use Vishap (and when not)
+
+**Vishap is not a replacement for SonarQube or Snyk.** It is a **different tool** for **different material**.
+
+| Tool | What it does | When to use |
+|---|---|---|
+| **SonarQube** | 40+ languages, Quality Gates, deterministic SAST, IDE integration | **Code review** — you have source code, you want fast, deterministic rules. |
+| **Snyk** | Dependencies, containers, IaC, SBOM | **Supply chain** — you want CVE in deps / images / Terraform. |
+| **Vishap** | 6-stage LLM pipeline, multi-material (code / spec / logs / config / data), audit trail with SHA-256, FI, runbook | **Spec / logs / config as material** — when you need an **audit trail** and **LLM reasoning**, not just rules. |
+
+### Choose Vishap when
+
+- You need to analyze **specs, logs, configs, or data** (not just code).
+- You need an **audit trail** (SHA-256 provenance, `valid_until`, PII detection).
+- You need a **runbook** (LLM-generated fix + verify) in the report.
+- You want **FI (fidelity index)** — a measure of how honest the report is.
+- You want **opt-in self-adversarial loops** (red team / translator / tester / fixer).
+
+### Don't use Vishap when
+
+- You just need **fast, deterministic SAST** on source code → **SonarQube**.
+- You need **CVE in dependencies / containers / IaC** → **Snyk**.
+- You need **IDE integration** (real-time linting) → **SonarLint** / **Snyk IDE**.
+
+> **Bottom line:** Vishap **complements** SonarQube / Snyk. Run SonarQube for code, Snyk for deps, Vishap for **spec / logs / config + audit trail + runbook**.
+
 ## 📦 Quick Start
+
+### Python (pip)
+
+```bash
+pip install vishap-analyzer==7.3.15
+```
+
+```python
+from vishap_analyzer import analyze  # or: from src.pipeline.orchestrator import run_pipeline
+result = analyze(material="def get_user(name): ...", filename="sqli.py")
+print(result["audit"]["critique_verdict"])
+```
+
+> **Version pin:** `==7.3.15` — the version documented here. See [PyPI](https://pypi.org/project/vishap-analyzer/) for the latest.
 
 ### Backend (Docker)
 ```bash
