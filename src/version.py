@@ -1,3 +1,4 @@
-# -*- coding: utf-8 -*-
-"""Single source of truth for version (synced with pyproject.toml)."""
-__version__ = "7.2.6"
+"""Single source of truth for Vishap version (v7.3.4)."""
+
+__version__ = "7.3.4"
+VERSION = __version__

@@ -71,7 +71,11 @@ class CustomClient:
             raise CustomError(f"custom HTTP {r.status_code}: {r.text[:300]}")
         data = r.json()
         try:
-            text = data["choices"][0]["message"]["content"] or ""
+            msg = data["choices"][0]["message"]
+            text = msg.get("content") or ""
+            if not text:
+                # reasoning models (deepseek-flash / v4) put text in reasoning_content
+                text = msg.get("reasoning_content") or ""
         except (KeyError, IndexError) as e:
             raise CustomError(f"unexpected custom response: {e}") from e
         usage = data.get("usage") or {}

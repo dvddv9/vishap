@@ -102,3 +102,7 @@ pip-metadata-*/
 pip-unpack-*/
 dist/
 *.egg-info/
+
+# v7.3.4: pipeline artifacts / logs
+.stage1/
+.stage2/

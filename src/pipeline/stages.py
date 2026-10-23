@@ -55,6 +55,97 @@ def _clean_json_string(text: str) -> str:
     return "".join(result)
 
 
+def _recover_truncated_json(text: str) -> dict | None:
+    """v7.3.4: Восстановить обрезанный JSON (DSH/DeepSeek-flash игнорирует max_tokens).
+
+    Стратегии:
+    1) Закрыть все незакрытые { и [ в правильном порядке.
+    2) Обрезать до последнего валидного } и закрыть оставшиеся скобки.
+    """
+    if not isinstance(text, str):
+        return None
+    start = text.find("{")
+    if start == -1:
+        return None
+    text = text[start:]
+
+    # Стратегия 1: закрыть незакрытые скобки (в правильном порядке: сначала ], потом })
+    # Идём по тексту, считаем стек открытых скобок
+    stack = []
+    in_string = False
+    escape = False
+    for ch in text:
+        if escape:
+            escape = False
+            continue
+        if ch == "\\":
+            escape = True
+            continue
+        if ch == '"':
+            in_string = not in_string
+            continue
+        if in_string:
+            continue
+        if ch in "{[":
+            stack.append(ch)
+        elif ch == "}":
+            if stack and stack[-1] == "{":
+                stack.pop()
+        elif ch == "]":
+            if stack and stack[-1] == "[":
+                stack.pop()
+
+    if stack:
+        # закрываем в обратном порядке
+        closers = ""
+        for opener in reversed(stack):
+            closers += "]" if opener == "[" else "}"
+        try:
+            return json.loads(text + closers)
+        except json.JSONDecodeError:
+            pass
+
+    # Стратегия 2: обрезать до последнего } и закрыть оставшиеся скобки
+    for i in range(len(text) - 1, 0, -1):
+        if text[i] == "}":
+            candidate = text[:i + 1]
+            # считаем незакрытые скобки в candidate
+            st = []
+            in_s = False
+            esc = False
+            for ch in candidate:
+                if esc:
+                    esc = False
+                    continue
+                if ch == "\\":
+                    esc = True
+                    continue
+                if ch == '"':
+                    in_s = not in_s
+                    continue
+                if in_s:
+                    continue
+                if ch in "{[":
+                    st.append(ch)
+                elif ch == "}":
+                    if st and st[-1] == "{":
+                        st.pop()
+                elif ch == "]":
+                    if st and st[-1] == "[":
+                        st.pop()
+            if st:
+                closers = "".join("]" if o == "[" else "}" for o in reversed(st))
+                candidate += closers
+            try:
+                parsed = json.loads(candidate)
+                if isinstance(parsed, dict):
+                    return parsed
+            except json.JSONDecodeError:
+                continue
+
+    return None
+
+
 def _try_parse(text: str) -> dict | None:
     if not text or not text.strip():
         return None
@@ -92,6 +183,10 @@ def _try_parse(text: str) -> dict | None:
         except json.JSONDecodeError:
             pass
 
+    # v7.3.4: recovery для обрезанного JSON (DSH)
+    recovered = _recover_truncated_json(text)
+    if recovered is not None:
+        return recovered
     return None
 
 

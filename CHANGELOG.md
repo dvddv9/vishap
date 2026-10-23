@@ -1,22 +1,18 @@
-﻿## [7.0.1] — 2026-10-20
-
-### Fixed
-- `PORT` is now read from `.env` (`src/config.py`), so the API can run on `8080` (or any port) without editing code.
-- `harness_launcher.probe()` follows redirects (`HTTP 303` no longer reported as unreachable).
-- `harness_client.py` loads `.env` before reading `HARNESS_TOKEN` (no more `HARNESS_TOKEN empty` on direct imports).
-- Desktop-mode and job-delete tests updated for harness-only LLM + Clerk stubs; BOM stripped from Python sources.
-
-### Changed
-- README: local dev Quick Start (`PORT=8080`, `start_vishap_dev.bat`, no Docker).
-- `.env.example`: `HARNESS_*`, `PORT=8080`, `HARNESS_AUTOSTART=0`, `LLM_MODE=harness`; `DEEPSEEK_*` removed.
-- `docs/ROADMAP.md` rewritten for v7.x (Tauri cross-platform, GitHub App, SaaS deferred).
-- `publish.yml` removed; PyPI project deleted.
-
-# Changelog
+﻿# Changelog
 
 All notable changes to Vishap. Format based on [Keep a Changelog](https://keepachangelog.com/).
 
 ---
+
+## [7.3.4] - 2026-10-23
+
+### Fixed
+- `custom_client.py`: fallback to `message.reasoning_content` when `content` is empty (DeepSeek flash / V4 reasoning models).
+- `stages.py::parse_json_response`: recover JSON truncated at `max_tokens` (close unclosed `{`/`[`, cut at last valid object).
+- Version sync: `src/version.py` as single source of truth; CI check via `scripts/check_version.py`.
+
+### Added
+- DSH endpoint support via `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`, OpenAI-compatible).
 
 ## [6.0.1] - 2026-10-15
 
