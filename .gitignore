@@ -93,7 +93,8 @@ report_*.md
 venv/
 .stage4/
 harness_out.txt
-dsh_output.logclaude-plugin/*.mcpb
+dsh_output.log
+claude-plugin/*.mcpb
 # pip / build (python -m build)
 build-env-*/
 build-requirements-*.txt
