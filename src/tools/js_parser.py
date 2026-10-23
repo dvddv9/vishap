@@ -1,4 +1,4 @@
-﻿# -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 """JavaScript/TypeScript taint patterns (sources + sinks) for Vishap."""
 JS_SOURCES = [
     "req.query", "req.body", "req.params", "req.headers",
