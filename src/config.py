@@ -57,6 +57,7 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 ENABLE_WEB_SEARCH = os.getenv("ENABLE_WEB_SEARCH", "false").lower() == "true"
 SEARCH_MAX_RESULTS = int(os.getenv("SEARCH_MAX_RESULTS", "5"))
 SEARCH_DEPTH = os.getenv("SEARCH_DEPTH", "basic")
+DEEPSEEK_SEARCH_URL = os.getenv("DEEPSEEK_SEARCH_URL", "https://api.deepseek.com/v1/tools")
 
 # === Р РµР¶РёРј LLM ===
 MODE = "auto"
