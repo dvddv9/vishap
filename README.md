@@ -5,7 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/vishap-analyzer.svg)](https://pypi.org/project/vishap-analyzer/)
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
-[![Version](https://img.shields.io/badge/version-7.3.6-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.6)
+[![Version](https://img.shields.io/badge/version-7.3.7-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.3.7)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 > 🐉 **Vishap** — 6-stage LLM pipeline for analyzing engineering materials (code, spec, logs, config, data).
@@ -22,7 +22,7 @@
 
 > ⚠️ Free tier: first request may take 30–50 s (cold start).
 
-## 🎉 What's new in v7.3.4
+## 🎉 What's new in v7.3.7
 
 - **DSH endpoint support** — `dsh-model-endpoint` plugin exposes `http://127.0.0.1:8787/v1` as an OpenAI-compatible API. Set `VISHAP_LLM_PROVIDER=custom`, `CUSTOM_LLM_URL=http://127.0.0.1:8787/v1`, `CUSTOM_LLM_KEY=<dsh-key>`, `CUSTOM_LLM_MODEL=auto`.
 - **reasoning_content fallback** — `custom_client.py` falls back to `message.reasoning_content` when `content` is empty (DeepSeek flash / V4).
@@ -54,6 +54,59 @@
 - **Docker**: bind `0.0.0.0` — `-p 5001:5001` smoke-test passes
 - **CI**: ruff F401 cleanup; `services.postgres` fix
 - **Version sync**: 7.2.2 (`pyproject.toml`, `version.py`, `package.json`, `main.py`, `layout.tsx`)
+
+## 🔌 DSH (DeepSeek Harness) — via endpoint
+
+DSH has **no inbound HTTP API**. To use DSH with Vishap, you need the [`dsh-model-endpoint`](https://github.com/Xxsttb/dsh-model-endpoint) plugin, which exposes DSH as an OpenAI-compatible endpoint (`http://127.0.0.1:8787/v1`).
+
+### 1. Install the plugin in DSH
+
+```bash
+dsh plugin --profile desktop add github:Xxsttb/dsh-model-endpoint
+```
+
+> ⚠️ The plugin is **not** published on npm as `dsh-model-endpoint` — install it from GitHub (or from a local folder/tarball, see plugin README).
+
+### 2. Enable the endpoint in DSH
+
+- DSH → **Settings → Model endpoint**
+- Toggle **Run the endpoint** (on)
+- **Generate** an API key (copy it — you will need it in Vishap)
+- Optional: **Lend this profile's tools** (on) — gives Vishap access to DSH tools (bash, files, search). This is the "smart mode".
+- **Save**
+
+The endpoint will listen on `http://127.0.0.1:8787/v1`.
+
+### 3. Configure Vishap
+
+In `.env`:
+
+```
+VISHAP_LLM_PROVIDER=custom
+CUSTOM_LLM_URL=http://127.0.0.1:8787/v1
+CUSTOM_LLM_KEY=<dsh-key>
+CUSTOM_LLM_MODEL=auto
+```
+
+> **`CUSTOM_LLM_MODEL=auto`** means: *"use the model currently selected in DSH"*. The plugin ignores the literal `auto` value and routes to whatever model is picked in the DSH chat / Settings → Models. It is **not** auto-detection by Vishap and **not** a model name.
+
+### Verify
+
+```powershell
+Test-NetConnection 127.0.0.1 -Port 8787 -InformationLevel Quiet
+# True = endpoint is listening
+```
+
+And a quick smoke test:
+
+```powershell
+cd C:\path\to\vishap
+.\venv\Scripts\python.exe -c "from src.llm.client import chat; print(chat('You are a helpful assistant.', 'Say hello in 5 words.'))"
+```
+
+Expected: `mode: custom`, text like `Hello there, how are you?`.
+
+---
 
 ## 🛠️ Features
 

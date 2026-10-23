@@ -4,6 +4,12 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.7] - 2026-10-23
+
+### Added
+- **README: DSH endpoint section** — install `dsh-model-endpoint`, enable in DSH (Settings → Model endpoint), configure Vishap, and verify.
+- Clarified: `CUSTOM_LLM_MODEL=auto` means "use the model selected in DSH".
+
 ## [7.3.6] - 2026-10-23
 
 ### Removed
