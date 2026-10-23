@@ -2,6 +2,7 @@
 
 ![Vishap Dashboard](docs/screenshots/dashboard.png)
 
+[![PyPI](https://img.shields.io/pypi/v/vishap-analyzer.svg)](https://pypi.org/project/vishap-analyzer/)
 [![CI](https://github.com/dvddv9/vishap/actions/workflows/ci.yml/badge.svg)](https://github.com/dvddv9/vishap/actions/workflows/ci.yml)
 [![Docs](https://github.com/dvddv9/vishap/actions/workflows/docs.yml/badge.svg)](https://dvddv9.github.io/vishap/)
 [![Version](https://img.shields.io/badge/version-7.2.2-blue)](https://github.com/dvddv9/vishap/releases/tag/v7.2.2)
