@@ -3,6 +3,11 @@
 from __future__ import annotations
 
 import os
+import json  # noqa: F401  # (if needed)
+
+# v7.3.1: Claude 5.x deprecates `temperature` (HTTP 400).
+# Set CUSTOM_LLM_SEND_TEMPERATURE=false for Claude 5.x.
+SEND_TEMPERATURE = os.getenv("CUSTOM_LLM_SEND_TEMPERATURE", "true").lower() == "true"
 
 import requests
 from dotenv import load_dotenv
@@ -44,7 +49,8 @@ class CustomClient:
         payload = {
             "model": self.model,
             "messages": messages,
-            "temperature": temperature,
+            # v7.3.1: skip temperature if CUSTOM_LLM_SEND_TEMPERATURE=false
+            **({"temperature": temperature} if SEND_TEMPERATURE else {}),
             "max_tokens": max_tokens,
             "stream": False,
         }

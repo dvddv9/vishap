@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
-РЎС‚Р°РґРёРё pipeline Vishap.
-v2: СѓР»СѓС‡С€РµРЅРЅС‹Р№ JSON-РїР°СЂСЃРёРЅРі + max_tokens РёР· config.
+Стадии pipeline Vishap.
+v2: улучшенный JSON-парсинг + max_tokens из config.
 """
 import json
 import re
@@ -140,9 +140,9 @@ def run_stage(stage_name: str, prompt_name: str, material: str,
         print(f"  [!] {stage_name}: JSON parse failed, retry...")
         retry_user = (
             user
-            + "\n\n## Р’РђР–РќРћ\n\n"
-            + "Р’РµСЂРЅРё РўРћР›Р¬РљРћ РІР°Р»РёРґРЅС‹Р№ JSON Р±РµР· Markdown, Р±РµР· РєРѕРјРјРµРЅС‚Р°СЂРёРµРІ, "
-            + "Р±РµР· С‚РµРєСЃС‚Р° РґРѕ РёР»Рё РїРѕСЃР»Рµ. РўРѕР»СЊРєРѕ { ... }."
+            + "\n\n## ВАЖНО\n\n"
+            + "Верни ТОЛЬКО валидный JSON без Markdown, без комментариев, "
+            + "без текста до или после. Только { ... }."
         )
         result = llm_chat(system, retry_user, temperature=temperature, max_tokens=max_tokens)
         parsed = parse_json_response(result["text"])
@@ -178,7 +178,7 @@ def stage0_orchestrator(material: str, filename: str) -> dict:
         prompt_name="00_orchestrator",
         material=f"# File: {filename}\n\n{material}",
         temperature=0.0,
-        max_tokens=2000,
+        max_tokens=4000,
     )
 
 
@@ -194,7 +194,7 @@ def stage1_scanner(material: str, context: dict) -> dict:
 
 def stage2_analyst(material: str, context: dict,
                    search_queries: list | None = None) -> dict:
-    """Stage 2: Analyst СЃ РѕРїС†РёРѕРЅР°Р»СЊРЅС‹Рј web search."""
+    """Stage 2: Analyst с опциональным web search."""
     web_search_results = None
     queries_used = []
 
@@ -223,7 +223,7 @@ def stage2_analyst(material: str, context: dict,
 
 
 def _generate_default_queries(material: str) -> list:
-    """РџСЂРѕСЃС‚Р°СЏ СЌРІСЂРёСЃС‚РёРєР° вЂ” 1-3 Р·Р°РїСЂРѕСЃР° РёР· РјР°С‚РµСЂРёР°Р»Р°."""
+    """Простая эвристика — 1-3 запроса из материала."""
     queries = []
     m = material.lower()
 

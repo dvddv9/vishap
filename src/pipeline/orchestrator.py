@@ -744,7 +744,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         context_4["stage3"] = stage3
     stage4 = _timed_stage(log, "stage4", session_id, stage4_synthesizer, material, context_4)
     if verbose:
-        print(f"  → options: {len(stage4.get('options', []))}")
+        print(f"  → options: {len(stage4.get('options') or [])}")
         print()
 
     if verbose:

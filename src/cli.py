@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 
 from src.config import APP_NAME
+from src.version import __version__
 from src.pipeline.orchestrator import run_pipeline
 from src.tools.diff import get_changed_files, get_uncommitted_files, is_changed
 from src.tools.sbom import generate_sbom, parse_sbom, is_cyclonedx_available
@@ -155,7 +156,7 @@ def cmd_sbom(args):
 
 def cmd_info(args):
     """Show info."""
-    print(f"{APP_NAME} V6.0.3 - 6-stage LLM pipeline")
+    print(f"{APP_NAME} {__version__} - 6-stage LLM pipeline")
     print("Pipeline: Stage 0-5 (Orchestrator > Scanner > Analyst > Researcher > Synthesizer > Transmitter)")
     print("Features: audit trail, PII redaction, compliance flags, SAST/SCA, SARIF, retry, fallback, baseline")
     print()
@@ -180,8 +181,8 @@ def main():
             sys.stderr.reconfigure(encoding="utf-8", errors="replace")
         except (AttributeError, OSError):
             pass
-    ap = argparse.ArgumentParser(prog="vishap", description=f"{APP_NAME} V6.0.3")
-    ap.add_argument("--version", action="version", version=f"{APP_NAME} V6.0.3")
+    ap = argparse.ArgumentParser(prog="vishap", description=f"{APP_NAME} {__version__}")
+    ap.add_argument("--version", action="version", version=f"{APP_NAME} {__version__}")
 
     sub = ap.add_subparsers(dest="command")
 

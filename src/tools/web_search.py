@@ -29,8 +29,23 @@ DEEPSEEK_TOOLS_URL = os.getenv("DEEPSEEK_SEARCH_URL", "https://api.deepseek.com/
 
 
 def _deepseek_key() -> str:
-    """DeepSeek key for Search/Fetch: CUSTOM_LLM_KEY or DEEPSEEK_API_KEY."""
-    return CUSTOM_LLM_KEY or os.getenv("DEEPSEEK_API_KEY", "")
+    """DeepSeek key for Search/Fetch.
+
+    Priority:
+      1. DEEPSEEK_SEARCH_KEY (explicit)
+      2. DEEPSEEK_API_KEY
+      3. CUSTOM_LLM_KEY (only if CUSTOM_LLM_URL points to api.deepseek.com)
+    """
+    explicit = os.getenv("DEEPSEEK_SEARCH_KEY", "").strip()
+    if explicit:
+        return explicit
+    deepseek_key = os.getenv("DEEPSEEK_API_KEY", "").strip()
+    if deepseek_key:
+        return deepseek_key
+    llm_url = os.getenv("CUSTOM_LLM_URL", "").strip().lower()
+    if "deepseek.com" in llm_url and CUSTOM_LLM_KEY:
+        return CUSTOM_LLM_KEY
+    return ""
 
 
 def _deepseek_search(query: str, count: int = 5) -> dict:
