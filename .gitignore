@@ -94,3 +94,10 @@ venv/
 .stage4/
 harness_out.txt
 dsh_output.logclaude-plugin/*.mcpb
+# pip / build (python -m build)
+build-env-*/
+build-requirements-*.txt
+pip-metadata-*/
+pip-unpack-*/
+dist/
+*.egg-info/
