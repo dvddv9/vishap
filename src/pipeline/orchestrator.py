@@ -20,6 +20,7 @@ from src.pipeline.stages import (
     stage1_5_translator,
     stage2_5_redteam,
     stage3_researcher,
+    stage3_5_tester,
     stage4_synthesizer,
     stage5_transmitter,
 )
@@ -769,9 +770,16 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         if verbose:
             print()
 
+    # v7.3.14: test-first loop (VISHAP_TESTER=1)
+    stage3_5 = _timed_stage(log, "stage3_5", session_id, stage3_5_tester, material, {"stage0": stage0, "stage1": stage1, "stage2": stage2})
+    if verbose and stage3_5.get("confirmed"):
+        print(f"  → confirmed: {len(stage3_5['confirmed'])}")
+    if verbose and stage3_5.get("false_positives"):
+        print(f"  → false positives: {len(stage3_5['false_positives'])}")
+
     if verbose:
         print("[Stage 4] Synthesizer...")
-    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}}
+    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}, "stage3_5": stage3_5 if "stage3_5" in dir() and (stage3_5.get("confirmed") or stage3_5.get("false_positives")) else {}}
     if stage3:
         context_4["stage3"] = stage3
     stage4 = _timed_stage(log, "stage4", session_id, stage4_synthesizer, material, context_4)

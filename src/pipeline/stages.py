@@ -477,6 +477,71 @@ def stage3_researcher(material: str, context: dict) -> dict:
     )
 
 
+def stage3_5_tester(material: str, context: dict, async_mode: bool = False, verbose: bool = False) -> dict:
+    """v7.3.14: test-first loop (live pytest in sandbox).
+
+    Input:  stage2 (risk_nodes, security).
+    Output: {"confirmed": [...], "false_positives": [...], "mode": "custom"}
+
+    For each critical/high risk_node: generate pytest, run in sandbox.
+    - pass  -> confirmed (defect is real)
+    - fail  -> false_positive (or test is wrong)
+
+    Enabled by VISHAP_TESTER=1 (default: off; RCE risk).
+    """
+    import os
+    if os.getenv("VISHAP_TESTER", "0").strip() not in ("1", "true", "yes"):
+        return {"confirmed": [], "false_positives": [], "mode": "skipped", "reason": "VISHAP_TESTER!=1"}
+
+    stage2 = context.get("stage2") or {}
+    risk_nodes = stage2.get("risk_nodes", []) if isinstance(stage2, dict) else []
+    critical = [
+        r for r in risk_nodes
+        if isinstance(r, dict) and str(r.get("priority", "")).lower() in ("критично", "critical", "high")
+    ]
+    if not critical:
+        return {"confirmed": [], "false_positives": [], "mode": "skipped", "reason": "no critical risk_nodes"}
+
+    from src.pipeline.sandbox import run_pytest_in_sandbox
+    from src.llm.client import chat as llm_chat
+
+    confirmed = []
+    false_positives = []
+    for rn in critical[:3]:  # limit: max 3 tests
+        cwe = rn.get("cwe", "")
+        desc = rn.get("node", "") or rn.get("description", "")
+        system = (
+            "You are a test generator. Write ONE pytest test that reproduces the given defect. "
+            "Return ONLY the Python test code (imports + def test_...), no markdown, no comments. "
+            "The test must FAIL if the defect is present, PASS if it is fixed."
+        )
+        user = (
+            f"Defect: {cwe} — {desc}\n"
+            f"Material (first 2000 chars):\n{material[:2000]}"
+        )
+        try:
+            result = llm_chat(system, user, temperature=0.1, max_tokens=500)
+            test_code = (result.get("text") or "").strip()
+            # strip markdown fences if any
+            if test_code.startswith("```"):
+                test_code = test_code.split("```")[1]
+                if test_code.startswith("python"):
+                    test_code = test_code[6:]
+            sandbox = run_pytest_in_sandbox(test_code, timeout=5)
+            if sandbox["ok"]:
+                confirmed.append({"cwe": cwe, "test_ok": True, "reason": sandbox["reason"]})
+            else:
+                false_positives.append({"cwe": cwe, "test_ok": False, "reason": sandbox["reason"]})
+        except Exception as e:
+            false_positives.append({"cwe": cwe, "test_ok": False, "reason": f"error: {e}"})
+
+    return {
+        "confirmed": confirmed,
+        "false_positives": false_positives,
+        "mode": "custom",
+    }
+
+
 def stage4_synthesizer(material: str, context: dict) -> dict:
     return run_stage(
         stage_name="stage4_synthesizer",

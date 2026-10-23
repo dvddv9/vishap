@@ -4,6 +4,18 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.14] - 2026-10-23
+
+### Added
+- **Test-first loop** (`VISHAP_TESTER=1`) — stage3.5: «Write pytest that reproduces the defect, run in sandbox». Result: confirmed / false_positive (merged into stage4).
+  - Verified: on SQLi — generated test passed in sandbox, CWE-89 confirmed.
+  - Verified: on XSS — test failed (false positive, weak test).
+- **Sandbox** (`src/pipeline/sandbox.py`) — 5s timeout, no network (best-effort), isolated temp dir.
+- `result_sess-*.json`: now saves `stage3_5` (debug/audit).
+
+### Changed
+- `stage3_5_tester`: max 3 tests, strip markdown fences, RCE risk (use VISHAP_TESTER=1 only for trusted material).
+
 ## [7.3.13] - 2026-10-23
 
 ### Added
