@@ -4,6 +4,17 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.15] - 2026-10-24
+
+### Added
+- **Fix-loop** (`VISHAP_FIXER=1`) — stage4.5: «Apply fix, run ruff + pytest + mypy in sandbox». Result: accepted / rejected.
+  - Verified: on XSS — fix accepted 3/3 (`ruff: All checks passed!`).
+- **Sandbox** (`apply_fix_and_verify`) — ruff + pytest + mypy (optional), 10s timeout, isolated temp dir.
+- `result_sess-*.json`: now saves `stage4_5` (debug/audit).
+
+### Changed
+- `stage4_5_fixer`: max 3 fixes, strip markdown fences, RCE risk (use VISHAP_FIXER=1 only for trusted material).
+
 ## [7.3.14] - 2026-10-23
 
 ### Added

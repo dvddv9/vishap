@@ -22,6 +22,7 @@ from src.pipeline.stages import (
     stage3_researcher,
     stage3_5_tester,
     stage4_synthesizer,
+    stage4_5_fixer,
     stage5_transmitter,
 )
 from src.storage.history import add_entry
@@ -711,7 +712,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
             if verbose:
                 print(f"  [Inter-file] error: {_e}")
     _stage2_ctx = {"stage0": stage0, "stage1": stage1}
-    if "_stage1_5_ctx" in dir() and _stage1_5_ctx:
+    if "_stage1_5_ctx" in locals() and _stage1_5_ctx:
         _stage2_ctx["stage1_5"] = _stage1_5_ctx
     if _ctx_files:
         _stage2_ctx["context_files"] = _ctx_files
@@ -779,13 +780,20 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
 
     if verbose:
         print("[Stage 4] Synthesizer...")
-    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}, "stage3_5": stage3_5 if "stage3_5" in dir() and (stage3_5.get("confirmed") or stage3_5.get("false_positives")) else {}}
+    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in locals() else {}, "stage3_5": stage3_5 if "stage3_5" in locals() and (stage3_5.get("confirmed") or stage3_5.get("false_positives")) else {}}
     if stage3:
         context_4["stage3"] = stage3
     stage4 = _timed_stage(log, "stage4", session_id, stage4_synthesizer, material, context_4)
     if verbose:
         print(f"  → options: {len(stage4.get('options') or [])}")
         print()
+
+    # v7.3.15: fix-loop (VISHAP_FIXER=1)
+    stage4_5 = _timed_stage(log, "stage4_5", session_id, stage4_5_fixer, material, {"stage0": stage0, "stage4": stage4})
+    if verbose and stage4_5.get("accepted"):
+        print(f"  → fix accepted: {len(stage4_5['accepted'])}")
+    if verbose and stage4_5.get("rejected"):
+        print(f"  → fix rejected: {len(stage4_5['rejected'])}")
 
     if verbose:
         print("[Stage 5] Transmitter...")
@@ -896,7 +904,7 @@ def run_pipeline(material: str, filename: str, verbose: bool = True,
         "stage1": stage1,
         "stage2": stage2,
         "stage3": stage3,
-        "stage4": stage4,
+        "stage4": stage4, "stage4_5": stage4_5 if "stage4_5" in locals() else {},
         "audit": audit,
         "completeness": completeness,
         "critique_verdict": audit["critique_verdict"],
@@ -1014,7 +1022,7 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     if research_first:
         stage3 = await async_stage3_researcher(
             material, {"stage0": stage0, "stage1": stage1, "stage2": stage2})
-    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in dir() else {}}
+    context_4 = {"stage0": stage0, "stage1": stage1, "stage2": stage2, "stage2_5": stage2_5 if "stage2_5" in locals() else {}}
     if stage3:
         context_4["stage3"] = stage3
     stage4 = await async_stage4_synthesizer(material, context_4)
@@ -1082,6 +1090,7 @@ async def run_pipeline_async(material: str, filename: str, verbose: bool = False
     result = {"session_id": session_id, "timestamp": datetime.now(UTC).isoformat(),
               "filename": filename, "material_size": len(material), "stage0": stage0,
               "stage1": stage1, "stage2": stage2, "stage3": stage3, "stage4": stage4,
+              "stage4_5": stage4_5 if "stage4_5" in locals() else {},
               "audit": audit, "completeness": completeness,
               "cost_usd": sum_stage_costs([stage0, stage1, stage2, stage3, stage4]),
               "final_markdown": final_markdown}

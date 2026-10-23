@@ -553,6 +553,76 @@ def stage4_synthesizer(material: str, context: dict) -> dict:
     )
 
 
+def stage4_5_fixer(material: str, context: dict, async_mode: bool = False, verbose: bool = False) -> dict:
+    """v7.3.15: fix-loop (LLM writes fix, sandbox verifies).
+
+    Input:  stage4 (options — fixes) + material.
+    Output: {"accepted": [...], "rejected": [...], "mode": "custom"}
+
+    For each fix in stage4.options (max 3):
+    - LLM writes fixed code
+    - sandbox (ruff + pytest + mypy) verifies
+    - accepted (no new defects) / rejected (new defects)
+
+    Enabled by VISHAP_FIXER=1 (default: off; RCE risk).
+    """
+    import os
+    if os.getenv("VISHAP_FIXER", "0").strip() not in ("1", "true", "yes"):
+        return {"accepted": [], "rejected": [], "mode": "skipped", "reason": "VISHAP_FIXER!=1"}
+
+    stage4 = context.get("stage4") or {}
+    options = stage4.get("options", []) if isinstance(stage4, dict) else []
+    if not options:
+        return {"accepted": [], "rejected": [], "mode": "skipped", "reason": "no stage4 options"}
+
+    from src.pipeline.sandbox import apply_fix_and_verify
+    from src.llm.client import chat as llm_chat
+
+    accepted = []
+    rejected = []
+    for opt in options[:3]:  # limit: max 3 fixes
+        if not isinstance(opt, dict):
+            continue
+        title = opt.get("title", "") or opt.get("name", "")
+        fix_desc = opt.get("fix", "") or opt.get("description", "")
+        system = (
+            "You are a code fixer. Apply the given fix to the material. "
+            "Return ONLY the fixed Python code (no markdown, no comments). "
+            "The code must be syntactically valid, pass ruff, and not break existing behavior."
+        )
+        user = (
+            f"Fix: {title} — {fix_desc}\n"
+            f"Material (first 3000 chars):\n{material[:3000]}"
+        )
+        try:
+            result = llm_chat(system, user, temperature=0.1, max_tokens=1500)
+            fixed_code = (result.get("text") or "").strip()
+            if fixed_code.startswith("```"):
+                fixed_code = fixed_code.split("```")[1]
+                if fixed_code.startswith("python"):
+                    fixed_code = fixed_code[6:]
+            verdict = apply_fix_and_verify(material, fixed_code, timeout=10)
+            entry = {
+                "title": title,
+                "ok": verdict.get("ok"),
+                "reason": verdict.get("reason"),
+                "ruff_out": (verdict.get("ruff_out") or "")[:300],
+                "pytest_out": (verdict.get("pytest_out") or "")[:300],
+            }
+            if verdict.get("ok"):
+                accepted.append(entry)
+            else:
+                rejected.append(entry)
+        except Exception as e:
+            rejected.append({"title": title, "ok": False, "reason": f"error: {e}"})
+
+    return {
+        "accepted": accepted,
+        "rejected": rejected,
+        "mode": "custom",
+    }
+
+
 def stage5_transmitter(material: str, context: dict) -> str:
     system, user = build_prompt("05_transmitter", material, context)
     result = llm_chat(system, user, temperature=0.0, max_tokens=MAX_TOKENS)
