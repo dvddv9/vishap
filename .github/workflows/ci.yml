@@ -24,7 +24,7 @@ jobs:
           POSTGRES_DB: vishap
         ports: ["5432:5432"]
         options: >-
-          --health-cmd pg_isready
+          --health-cmd "pg_isready -U vishap"
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
@@ -48,6 +48,15 @@ jobs:
 
       - name: "Lint (ruff: F + E9)"
         run: ruff check src/ --config pyproject.toml
+
+      - name: Wait for Postgres
+        run: |
+          for i in {1..30}; do
+            pg_isready -h localhost -U vishap -d vishap && break
+            sleep 2
+          done
+        env:
+          PGPASSWORD: vishap_dev
 
       - name: Apply Database Migrations
         run: alembic upgrade head
