@@ -21,6 +21,8 @@
 
 ## 🎉 What's new in v7.2.2
 
+- **JavaScript / TypeScript support**: `detect_language` (.js/.jsx/.mjs/.cjs/.ts/.tsx), `js_parser.scan_js_patterns` (XSS, SQLi, RCE, path traversal, command injection), LLM hints in `build_prompt`.
+
 ### Audit evidence (#1–#8)
 - **#1 `context_thread`** — wires metrics / cwe / evidence → activates #3 / #5 / #6
 - **#2 `compute_critique_verdict`** — `NEEDS_VERIFICATION` / `REQUIRES_REVIEW` / `SAFE`; critical `risk_nodes` / `security` → `REQUIRES_REVIEW`
@@ -46,7 +48,7 @@
 ## 🛠️ Features
 
 - **6-stage pipeline:** Ingestion → Taint Analysis → Dataflow → Risk Assessment → Verdict → Report.
-- **Multi-language:** Python, Java, C (AST + taint patterns).
+- **Multi-language:** Python, Java, C, **JavaScript / TypeScript** (AST + taint patterns).
 - **Multi-provider LLM:** DeepSeek (custom), DSH Harness, or any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together).
 - **Async API:** FastAPI + Celery workers (optional in-process fallback).
 - **Security:** HMAC-SHA256 for API keys (with pepper), Fernet for secrets.
