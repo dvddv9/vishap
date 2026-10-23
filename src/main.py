@@ -156,7 +156,7 @@ async def log_requests(request, call_next):
 
 class AnalyzeRequest(BaseModel):
     force: bool = False
-    material: str = Field(..., description="Материал: код, spec, logs и т.п.")
+    material: str = Field(..., max_length=200_000, description="Материал: код, spec, logs и т.п.")
     filename: str = Field(default="input.txt", description="Имя файла")
     verbose: bool = Field(default=False, description="Подробный вывод")
 
