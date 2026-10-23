@@ -1,3 +1,4 @@
+<img width="1521" height="856" alt="Screenshot 2026-10-24 003530" src="https://github.com/user-attachments/assets/7bef0b59-3104-437b-8536-fdf5cc8fdd1b" />
 # 🐉 Vishap
 
 ![Vishap Dashboard](docs/screenshots/dashboard.png)
