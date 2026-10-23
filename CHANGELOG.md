@@ -4,6 +4,15 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.9] - 2026-10-23
+
+### Added
+- **UI: beautiful hero** — gradient background, animated CTA, «Why Vishap?» bullets (`components/Hero.tsx`).
+- **UI: feature grid** — 3 cards (SAST / pipeline / SARIF) (`components/FeatureGrid.tsx`).
+
+### Changed
+- `page.tsx`: inline hero replaced with `<Hero />` + `<FeatureGrid />`.
+
 ## [7.3.8] - 2026-10-23
 
 ### Added

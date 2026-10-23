@@ -15,6 +15,8 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import JobCard from "@/components/JobCard";
+import Hero from "@/components/Hero";
+import FeatureGrid from "@/components/FeatureGrid";
 import EmptyState from "@/components/EmptyState";
 import {
   clearHistory,
@@ -106,15 +108,9 @@ function Dashboard({ auth }: { auth: AuthState }) {
 
   return (
     <div className="mx-auto w-full max-w-6xl px-4 py-10">
-      <section className="flex flex-col gap-4">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-100 sm:text-4xl">
-          Vishap — security analysis for engineering materials
-        </h1>
-        <p className="max-w-2xl text-slate-400">
-          Six-stage LLM pipeline with deterministic SAST/SCA, STRIDE threat modelling, an audit
-          trail with SHA-256 provenance, and SARIF 2.1.0 export.
-        </p>
-      </section>
+      <Hero canAnalyze={canAnalyze} />
+
+      <FeatureGrid />
 
       {auth === "loading" ? (
         <div className="mt-8 flex items-center gap-2 text-sm text-slate-500">
