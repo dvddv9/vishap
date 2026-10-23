@@ -4,6 +4,11 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.8] - 2026-10-23
+
+### Added
+- **UI: empty state CTA** — `ui-next/src/components/EmptyState.tsx` («Analyze code →» + «Try example (SQLi)») instead of passive «No analyses yet» text.
+
 ## [7.3.7] - 2026-10-23
 
 ### Added

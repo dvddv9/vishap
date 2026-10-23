@@ -15,6 +15,7 @@ import {
   TriangleAlert,
 } from "lucide-react";
 import JobCard from "@/components/JobCard";
+import EmptyState from "@/components/EmptyState";
 import {
   clearHistory,
   deleteJob,
@@ -206,13 +207,7 @@ function Dashboard({ auth }: { auth: AuthState }) {
           ) : null}
 
           {!error && jobs && jobs.length === 0 ? (
-            <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-slate-800 px-6 py-12 text-center">
-              <FileText className="h-6 w-6 text-slate-600" aria-hidden="true" />
-              <p className="text-sm text-slate-400">No analyses yet.</p>
-              <p className="text-xs text-slate-600">
-                Jobs you submit from this browser will appear here.
-              </p>
-            </div>
+            <EmptyState />
           ) : null}
 
                     {jobs?.map((job) => (
