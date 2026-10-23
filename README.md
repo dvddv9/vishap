@@ -22,7 +22,7 @@
 
 > ⚠️ Free tier: first request may take 30–50 s (cold start).
 
-## 🎉 What's new in v7.2.6
+## 🎉 What's new in v7.3.1
 
 - **JavaScript / TypeScript support**: `detect_language` (.js/.jsx/.mjs/.cjs/.ts/.tsx), `js_parser.scan_js_patterns` (XSS, SQLi, RCE, path traversal, command injection), LLM hints in `build_prompt`.
 
