@@ -27,14 +27,14 @@ def read_config():
 
 @router.post("/config")
 def write_config(cfg: LLMConfig):
-    if cfg.provider not in ("custom",):
+    if cfg.provider not in ("custom", "anthropic"):
         raise HTTPException(400, "provider must be custom")
     patch = {"LLM_PROVIDER": cfg.provider}
-    if cfg.provider == "custom":
+    if cfg.provider in ("custom", "anthropic"):
         if not cfg.custom_url:
-            raise HTTPException(400, "custom_url required for custom provider")
+            raise HTTPException(400, "custom_url required for custom/anthropic provider")
         if not cfg.custom_model:
-            raise HTTPException(400, "custom_model required for custom provider")
+            raise HTTPException(400, "custom_model required for custom/anthropic provider")
         patch["CUSTOM_LLM_URL"] = cfg.custom_url
         patch["CUSTOM_LLM_MODEL"] = cfg.custom_model
         if cfg.custom_key:

@@ -21,13 +21,13 @@ def _resolve_provider() -> str:
     """v7.3.16: provider selection (DeepSeek API is default).
 
     Priority:
-      1. explicit VISHAP_LLM_PROVIDER (custom | openai | groq | ollama | dsh | auto)
+      1. explicit VISHAP_LLM_PROVIDER (custom | openai | groq | ollama | dsh | anthropic | auto)
       2. auto -> custom if CUSTOM_LLM_URL set, else custom
       3. default: custom (DeepSeek API: https://api.deepseek.com/v1)
     """
     import os
     mode = os.getenv("VISHAP_LLM_PROVIDER", "custom").strip().lower()
-    if mode in ("custom", "openai", "groq", "ollama", "dsh", "harness"):
+    if mode in ("custom", "openai", "groq", "ollama", "dsh", "harness", "anthropic"):
         # all map to custom (OpenAI-compatible endpoint)
         return "custom"
     if mode == "auto":

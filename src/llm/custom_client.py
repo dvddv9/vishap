@@ -29,10 +29,10 @@ class CustomClient:
                  api_key: str | None = None,
                  model: str | None = None,
                  timeout: float | None = None) -> None:
-        self.base_url = (base_url or DEFAULT_URL).rstrip("/")
-        self.api_key = api_key or DEFAULT_KEY
-        self.model = model or DEFAULT_MODEL
-        self.timeout = timeout or DEFAULT_TIMEOUT
+        self.base_url = (base_url or _cfg("CUSTOM_LLM_URL", DEFAULT_URL)).rstrip("/")
+        self.api_key  = api_key  or _cfg("CUSTOM_LLM_KEY", DEFAULT_KEY)
+        self.model    = model    or _cfg("CUSTOM_LLM_MODEL", DEFAULT_MODEL)
+        self.timeout  = timeout  or DEFAULT_TIMEOUT
         if not self.base_url:
             raise CustomError("CUSTOM_LLM_URL is empty")
         if not self.api_key:

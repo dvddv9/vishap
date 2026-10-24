@@ -59,13 +59,22 @@ export default function LLMSettings() {
       <select
         className="w-full mb-3 rounded border border-slate-300 bg-white p-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
         value={cfg.provider}
-        onChange={(e) => setCfg({ ...cfg, provider: e.target.value })}
+        onChange={(e) => {
+          const v = e.target.value;
+          const next = { ...cfg, provider: v };
+          if (v === "anthropic") {
+            if (!cfg.custom_url)   next.custom_url   = "https://api.anthropic.com/v1/";
+            if (!cfg.custom_model) next.custom_model = "claude-sonnet-4-20250514";
+          }
+          setCfg(next);
+        }}
       >
         <option value="custom">custom (DeepSeek)</option>
         <option value="openai">OpenAI</option>
         <option value="groq">Groq</option>
         <option value="ollama">Ollama (local)</option>
         <option value="dsh">DSH endpoint</option>
+        <option value="anthropic">Anthropic (Claude)</option>
       </select>
 
       {cfg.provider === "custom" && (
