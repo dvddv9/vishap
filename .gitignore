@@ -106,3 +106,7 @@ dist/
 # v7.3.4: pipeline artifacts / logs
 .stage1/
 .stage2/
+
+# scripts (temp)
+s17_*.py
+
