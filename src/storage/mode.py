@@ -6,7 +6,7 @@ from src.config import DATA_DIR
 
 MODE_FILE = DATA_DIR / "mode.json"
 DEFAULT_MODE = "custom"
-VALID_MODES = ("custom",)
+VALID_MODES = ("custom", "dsh", "openai", "groq", "ollama")
 
 
 def get_mode() -> str:
