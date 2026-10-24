@@ -57,7 +57,7 @@ export default function LLMSettings() {
 
       <label className="block text-sm text-slate-700 mb-1">Provider</label>
       <select
-        className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
+        className="w-full mb-3 rounded border border-slate-300 bg-white p-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
         value={cfg.provider}
         onChange={(e) => setCfg({ ...cfg, provider: e.target.value })}
       >
@@ -72,7 +72,7 @@ export default function LLMSettings() {
         <>
           <label className="block text-sm text-slate-700 mb-1">Base URL</label>
           <input
-            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
+            className="w-full mb-3 rounded border border-slate-300 bg-white p-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             value={cfg.custom_url}
             onChange={(e) => setCfg({ ...cfg, custom_url: e.target.value })}
             placeholder="https://api.groq.com/openai/v1"
@@ -80,7 +80,7 @@ export default function LLMSettings() {
 
           <label className="block text-sm text-slate-700 mb-1">Model</label>
           <input
-            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
+            className="w-full mb-3 rounded border border-slate-300 bg-white p-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             value={cfg.custom_model}
             onChange={(e) => setCfg({ ...cfg, custom_model: e.target.value })}
             placeholder="llama-3.3-70b-versatile"
@@ -91,7 +91,7 @@ export default function LLMSettings() {
           </label>
           <input
             type="password"
-            className="w-full mb-3 rounded bg-slate-100 border border-slate-300 p-2 text-white"
+            className="w-full mb-3 rounded border border-slate-300 bg-white p-2 text-slate-900 shadow-sm focus:border-sky-500 focus:outline-none focus:ring-1 focus:ring-sky-500"
             value={key}
             onChange={(e) => setKey(e.target.value)}
             placeholder="gsk_..."
