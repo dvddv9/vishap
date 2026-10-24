@@ -23,8 +23,12 @@
 
 > ⚠️ Free tier: first request may take 30–50 s (cold start).
 
-## 🎉 What's new in v7.3.16
+## 🎉 What's new in v7.3.17
 
+- **Anthropic (Claude) provider** — `anthropic` в dropdown LLM Settings + auto-fill (`https://api.anthropic.com/v1/`, `claude-sonnet-4-20250514`). Ключ: `sk-ant-api03-...` из console.anthropic.com/settings/keys.
+- **Android (Gemini) provider** — `android` в dropdown + auto-fill (`https://generativelanguage.googleapis.com/v1beta/openai/`, `gemini-2.0-flash`). Ключ: `AIza...` из aistudio.google.com/apikey.
+- **Runtime config из `settings.json`** — `custom_client.py` читает `CUSTOM_LLM_*` из `settings.json` (runtime) поверх `.env` (defaults). Изменения в UI применяются «на лету».
+- **Fix `NameError: _cfg`** — `_cfg` определена на уровне модуля (фикс `5ecbed3`).
 - **DSH endpoint support** — `dsh-model-endpoint` plugin exposes `http://127.0.0.1:8787/v1` as an OpenAI-compatible API. Set `VISHAP_LLM_PROVIDER=custom`, `CUSTOM_LLM_URL=http://127.0.0.1:8787/v1`, `CUSTOM_LLM_KEY=<dsh-key>`, `CUSTOM_LLM_MODEL=auto`.
 - **reasoning_content fallback** — `custom_client.py` falls back to `message.reasoning_content` when `content` is empty (DeepSeek flash / V4).
 - **Truncated JSON recovery** — `parse_json_response` recovers JSON truncated at `max_tokens` (closes unclosed `{` / `[`, cuts at last valid object).
@@ -45,7 +49,7 @@
 - **#8 `report_date` / `valid_until`** — ISO + 90 days
 
 ### UI (`ui-next/`)
-- **LLMSettings**: provider = `custom` (OpenAI-compatible / DSH endpoint)
+- **LLMSettings**: 7 providers (`custom` / `openai` / `groq` / `ollama` / `dsh` / `anthropic` / `android`)
 - **Report v7.2 block**: Fidelity / Bias check / Reproducer / Negative evidence / Report date / valid_until
 - **CORS fix**: `app.add_middleware(CORSMiddleware, ...)` — Settings form works in browser
 - **mojibake fix**: em-dash `—`, ellipsis `…`, emoji 🐉
@@ -117,7 +121,7 @@ Expected: `mode: custom`, text like `Hello there, how are you?`.
 
 - **6-stage pipeline:** Ingestion → Taint Analysis → Dataflow → Risk Assessment → Verdict → Report.
 - **Multi-language:** Python, Java, C, **JavaScript / TypeScript** (AST + taint patterns).
-- **Multi-provider LLM:** DeepSeek (custom), any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together), or a local DSH endpoint via the `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`). Endpoint-only since v7.3.5 (legacy `harness` removed).
+- **Multi-provider LLM:** DeepSeek (custom), Anthropic (Claude), Android (Gemini), any OpenAI-compatible endpoint (Groq, OpenAI, Mistral, OpenRouter, Together), or a local DSH endpoint via the `dsh-model-endpoint` plugin (`http://127.0.0.1:8787/v1`). Endpoint-only since v7.3.5 (legacy `harness` removed).
 - **Async API:** FastAPI + Celery workers (optional in-process fallback).
 - **Security:** HMAC-SHA256 for API keys (with pepper), Fernet for secrets.
 - **Observability:** Structlog (JSON), Prometheus `/metrics`, OpenTelemetry traces.
@@ -155,7 +159,7 @@ Expected: `mode: custom`, text like `Hello there, how are you?`.
 ### Python (pip)
 
 ```bash
-pip install vishap-analyzer==7.3.16
+pip install vishap-analyzer==7.3.17
 ```
 
 ```python
