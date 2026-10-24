@@ -14,9 +14,20 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DEFAULT_URL = os.getenv("CUSTOM_LLM_URL", "")
-DEFAULT_KEY = os.getenv("CUSTOM_LLM_KEY", "")
-DEFAULT_MODEL = os.getenv("CUSTOM_LLM_MODEL", "")
+from src.storage.settings import get_settings
+
+def _cfg(key: str, default: str = "") -> str:
+    """settings.json (runtime) wins over .env (defaults)."""
+    try:
+        v = get_settings().get(key)
+        if v:
+            return str(v)
+    except Exception:
+        pass
+    return os.getenv(key, default)
+DEFAULT_URL = _cfg("CUSTOM_LLM_URL", "")
+DEFAULT_KEY = _cfg("CUSTOM_LLM_KEY", "")
+DEFAULT_MODEL = _cfg("CUSTOM_LLM_MODEL", "")
 DEFAULT_TIMEOUT = float(os.getenv("CUSTOM_LLM_TIMEOUT", "120"))
 
 
