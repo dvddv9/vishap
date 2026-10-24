@@ -63,12 +63,28 @@ export default function LLMSettings() {
           const v = e.target.value;
           const next = { ...cfg, provider: v };
           if (v === "anthropic") {
-            if (!cfg.custom_url)   next.custom_url   = "https://api.anthropic.com/v1/";
-            if (!cfg.custom_model) next.custom_model = "claude-sonnet-4-20250514";
+            next.custom_url   = "https://api.anthropic.com/v1/";
+            next.custom_model = "claude-sonnet-4-20250514";
           }
           if (v === "android") {
-            if (!cfg.custom_url)   next.custom_url   = "https://generativelanguage.googleapis.com/v1beta/openai/";
-            if (!cfg.custom_model) next.custom_model = "gemini-2.0-flash";
+            next.custom_url   = "https://generativelanguage.googleapis.com/v1beta/openai/";
+            next.custom_model = "gemini-2.0-flash";
+          }
+          if (v === "groq") {
+            next.custom_url   = "https://api.groq.com/openai/v1";
+            next.custom_model = "llama-3.3-70b-versatile";
+          }
+          if (v === "openai") {
+            next.custom_url   = "https://api.openai.com/v1";
+            next.custom_model = "gpt-4o-mini";
+          }
+          if (v === "ollama") {
+            next.custom_url   = "http://127.0.0.1:11434/v1";
+            next.custom_model = "llama3.1";
+          }
+          if (v === "custom") {
+            next.custom_url   = "https://api.deepseek.com/v1";
+            next.custom_model = "deepseek-chat";
           }
           setCfg(next);
         }}
