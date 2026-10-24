@@ -18,13 +18,23 @@ NO_CUSTOM_TEXT = (
 
 
 def _resolve_provider() -> str:
-    """v7.3.12: endpoint-only. Always "custom" (OpenAI-compatible).
+    """v7.3.16: provider selection (DeepSeek API is default).
 
-    Default: DeepSeek API (`https://api.deepseek.com/v1`).
-    Alternative: DSH endpoint (`http://127.0.0.1:8787/v1`) — optional.
+    Priority:
+      1. explicit VISHAP_LLM_PROVIDER (custom | openai | groq | ollama | dsh | auto)
+      2. auto -> custom if CUSTOM_LLM_URL set, else custom
+      3. default: custom (DeepSeek API: https://api.deepseek.com/v1)
     """
+    import os
+    mode = os.getenv("VISHAP_LLM_PROVIDER", "custom").strip().lower()
+    if mode in ("custom", "openai", "groq", "ollama", "dsh", "harness"):
+        # all map to custom (OpenAI-compatible endpoint)
+        return "custom"
+    if mode == "auto":
+        if os.getenv("CUSTOM_LLM_URL", "").strip() and os.getenv("CUSTOM_LLM_KEY", "").strip():
+            return "custom"
+        return "custom"
     return "custom"
-
 
 
 def _chat_custom(system: str, user: str, temperature: float, max_tokens: int) -> dict:

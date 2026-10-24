@@ -4,6 +4,19 @@ All notable changes to Vishap. Format based on [Keep a Changelog](https://keepac
 
 ---
 
+## [7.3.16] - 2026-10-24
+
+### Added
+- **Provider selection restored** — `VISHAP_LLM_PROVIDER` (custom | openai | groq | ollama | dsh | auto). Default: `custom` (DeepSeek API).
+- `.env.example`: provider examples (DeepSeek / OpenAI / Groq / Ollama / DSH).
+- `LLMSettings.tsx`: provider dropdown (custom / openai / groq / ollama / dsh).
+
+### Fixed
+- `_resolve_provider()` — env-based selection (custom default).
+- `storage/mode.py`: `VALID_MODES = (custom, dsh, openai, groq, ollama)`.
+- `.env.example`: deduplicated (one provider block).
+- `LLMSettings.tsx`: HTML comment removed (JSX parse fix).
+
 ## [7.3.15] - 2026-10-24
 
 ### Added

@@ -61,7 +61,11 @@ export default function LLMSettings() {
         value={cfg.provider}
         onChange={(e) => setCfg({ ...cfg, provider: e.target.value })}
       >
-        <option value="custom">Custom (OpenAI-compatible)</option>
+        <option value="custom">custom (DeepSeek)</option>
+        <option value="openai">OpenAI</option>
+        <option value="groq">Groq</option>
+        <option value="ollama">Ollama (local)</option>
+        <option value="dsh">DSH endpoint</option>
       </select>
 
       {cfg.provider === "custom" && (
