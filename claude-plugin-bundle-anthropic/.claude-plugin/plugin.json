@@ -1,0 +1,42 @@
+{
+  "name": "vishap-claude-bundle",
+  "displayName": "Vishap Claude (Bundle)",
+  "version": "7.3.17",
+  "description": "Security analysis for engineering materials via Claude API (Anthropic SDK).",
+  "author": {
+    "name": "dvddv9",
+    "email": "hndav9@yahoo.com"
+  },
+  "homepage": "https://github.com/dvddv9/vishap",
+  "repository": "https://github.com/dvddv9/vishap",
+  "license": "AGPL-3.0-or-later",
+  "keywords": ["security", "sast", "claude", "anthropic", "audit"],
+  "mcpServers": {
+    "vishap-analyze": {
+      "command": "C:\\Users\\dvddv\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/scripts/analyze.py"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY": "${user_config.ANTHROPIC_API_KEY}",
+        "ANTHROPIC_MODEL": "${user_config.ANTHROPIC_MODEL}"
+      }
+    }
+  },
+  "userConfig": {
+    "ANTHROPIC_API_KEY": {
+      "type": "string",
+      "title": "Anthropic API Key",
+      "description": "sk-ant-... from console.anthropic.com/settings/keys",
+      "sensitive": true,
+      "required": true
+    },
+    "ANTHROPIC_MODEL": {
+      "type": "string",
+      "title": "Anthropic Model",
+      "description": "Model name (e.g. claude-sonnet-5-5)",
+      "required": true,
+      "default": "claude-sonnet-5-5"
+    }
+  }
+}
