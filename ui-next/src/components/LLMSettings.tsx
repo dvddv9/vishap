@@ -66,6 +66,10 @@ export default function LLMSettings() {
             if (!cfg.custom_url)   next.custom_url   = "https://api.anthropic.com/v1/";
             if (!cfg.custom_model) next.custom_model = "claude-sonnet-4-20250514";
           }
+          if (v === "android") {
+            if (!cfg.custom_url)   next.custom_url   = "https://generativelanguage.googleapis.com/v1beta/openai/";
+            if (!cfg.custom_model) next.custom_model = "gemini-2.0-flash";
+          }
           setCfg(next);
         }}
       >
@@ -75,9 +79,10 @@ export default function LLMSettings() {
         <option value="ollama">Ollama (local)</option>
         <option value="dsh">DSH endpoint</option>
         <option value="anthropic">Anthropic (Claude)</option>
+        <option value="android">Android (OpenAI-compatible)</option>
       </select>
 
-      {cfg.provider === "custom" && (
+      {(cfg.provider === "custom" || cfg.provider === "anthropic" || cfg.provider === "android") && (
         <>
           <label className="block text-sm text-slate-700 mb-1">Base URL</label>
           <input
