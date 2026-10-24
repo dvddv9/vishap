@@ -110,3 +110,6 @@ dist/
 # scripts (temp)
 s17_*.py
 
+
+claude-plugin-anthropic/*.mcpb
+claude-plugin-anthropic/scripts/__pycache__/

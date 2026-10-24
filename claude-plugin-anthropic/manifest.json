@@ -1,0 +1,57 @@
+{
+  "manifest_version": "0.2",
+  "name": "vishap-claude",
+  "display_name": "Vishap Claude (Anthropic API)",
+  "version": "7.3.17",
+  "description": "Security analysis for engineering materials via Claude API (Anthropic SDK).",
+  "author": {
+    "name": "dvddv9",
+    "email": "hndav9@yahoo.com",
+    "url": "https://github.com/dvddv9"
+  },
+  "homepage": "https://github.com/dvddv9/vishap",
+  "documentation": "https://github.com/dvddv9/vishap#readme",
+  "support": "https://github.com/dvddv9/vishap/issues",
+  "server": {
+    "type": "python",
+    "entry_point": "scripts/analyze.py",
+    "mcp_config": {
+      "command": "C:\\Users\\dvddv\\AppData\\Local\\Programs\\Python\\Python312\\python.exe",
+      "args": [
+        "${__dirname}/scripts/analyze.py"
+      ],
+      "env": {
+        "ANTHROPIC_API_KEY": "${user_config.ANTHROPIC_API_KEY}",
+        "ANTHROPIC_MODEL": "${user_config.ANTHROPIC_MODEL}"
+      }
+    }
+  },
+  "tools": [
+    {
+      "name": "vishap_analyze",
+      "description": "Analyze code, spec, logs, or config for security risks (SQLi, XSS, RCE, TOCTOU, path traversal, command injection) via Claude API. Returns a structured Markdown report with CWE, STRIDE threat model, and recommendations."
+    }
+  ],
+  "keywords": ["security", "sast", "stride", "cwe", "owasp", "claude", "anthropic", "audit"],
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dvddv9/vishap"
+  },
+  "user_config": {
+    "ANTHROPIC_API_KEY": {
+      "type": "string",
+      "title": "Anthropic API Key",
+      "description": "sk-ant-... from console.anthropic.com/settings/keys",
+      "required": true,
+      "sensitive": true
+    },
+    "ANTHROPIC_MODEL": {
+      "type": "string",
+      "title": "Anthropic Model",
+      "description": "Model name (e.g. claude-sonnet-4-20250514, claude-3-5-sonnet-20241022)",
+      "required": true,
+      "default": "claude-sonnet-4-20250514"
+    }
+  }
+}
