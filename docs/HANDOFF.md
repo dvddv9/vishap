@@ -114,3 +114,10 @@ cd C:\AI\conveyor_app
 ---
 
 **Удачи! 674 теста — не сломай.**
+## Anthropic (Claude) provider (v7.3.17+)
+
+- **Dropdown**: `Anthropic (Claude)` в LLM Settings
+- **Base URL**: `https://api.anthropic.com/v1/`
+- **Model**: `claude-sonnet-4-20250514`
+- **API Key**: `sk-ant-...` (из platform.claude.com)
+- **Архитектура**: `custom_client.py` читает `CUSTOM_LLM_*` из `settings.json` (runtime) поверх `.env` (defaults) — изменения в UI применяются «на лету»
