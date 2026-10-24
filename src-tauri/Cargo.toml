@@ -1,6 +1,6 @@
 [package]
 name = "vishap-desktop"
-version = "7.3.16"
+version = "7.3.17"
 description = "Vishap вЂ” desktop shell for the local FastAPI backend"
 authors = ["Vishap"]
 edition = "2021"
